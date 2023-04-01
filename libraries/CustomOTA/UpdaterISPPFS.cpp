@@ -28,7 +28,6 @@ void UpdaterISPPFS::performUpdate(Stream& updateSource, size_t updateSize) {
 bool UpdaterISPPFS::updateFromFS(FileIO** fileIO) {
 
   fs::File updateBin = (*fileIO)->openFile(FileIO::TEMP_BIN_FILE, true);
-
   if (updateBin) {
     if (updateBin.isDirectory()) {
       Serial.println("Error, update.bin is not a file");
