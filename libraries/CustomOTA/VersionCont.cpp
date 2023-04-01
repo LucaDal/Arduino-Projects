@@ -1,9 +1,9 @@
 #include "VersionCont.h"
 #include <EEPROM.h>
-#define EEPROM_SIZE 1
+#define EEPROM_SIZE 512
 
-VersionCont::VersionCont() {
-  this->loadVersion();
+VersionCont::VersionCont(int EEPROMAddress) {
+  this->loadVersion(EEPROMAddress);
   hasNewFirmware = false;
 }
 
@@ -11,20 +11,19 @@ int VersionCont::getCurrentVersion() {
   return firmwareVersion;
 }
 
-void VersionCont::loadVersion() {
+void VersionCont::loadVersion(int EEPROMAddress) {
   EEPROM.begin(EEPROM_SIZE);
-  firmwareVersion = EEPROM.read(0);
+  firmwareVersion = EEPROM.read(EEPROMAddress);
 
   if (firmwareVersion >= 255 || firmwareVersion == 0) {
     firmwareVersion = 1;
-    this->saveVersion(firmwareVersion);
+    this->saveVersion(firmwareVersion,EEPROMAddress);
   }
 }
 
-void VersionCont::saveVersion(int buildNum) {
+void VersionCont::saveVersion(int buildNum, int EEPROMAddress ) {
   if (buildNum > 255) buildNum = 255;
-
-  EEPROM.write(0, buildNum);
+  EEPROM.write(EEPROMAddress, buildNum);
   EEPROM.commit();
 }
 

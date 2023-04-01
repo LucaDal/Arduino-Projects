@@ -13,12 +13,6 @@ SimpleOTA::SimpleOTA() {
 SimpleOTA::~SimpleOTA() {
 }
 
-void buttonCallbackEvent() {
-  Serial.println("buttonCallbackEvent");
-  if (instance->currentState == SERVER_FOUND && instance->version->hasNewUpdate()) {
-    instance->startDownload();
-  }
-}
 
 void networkDownloadEvent(int percent) {
   Serial.print("networkDownloadEvent downloadPercent: ");
@@ -26,57 +20,30 @@ void networkDownloadEvent(int percent) {
     instance->currentState = FIRMWARE_DOWNLOAD_START;
   }
   Serial.println(percent);
-  instance->display->downloadScreen(percent);
 }
 
 void SimpleOTA::begin() {
-  this->initDisplay();
   this->initVersion();
   this->initNetwork();
   this->initFileIO();
-  this->initButton();
 }
 
-void SimpleOTA::loop() {
-
-  switch (currentState) {
-    case NETWORK_CONNECTED:
-
-      if (millis() - t1 >= 1000) {
-        t1 = millis();
-        this->requestLocalServerTime();
-      }
-      break;
-
-    case SERVER_FOUND:
-      if (millis() - t1 >= 1000) {
-        t1 = millis();
-        this->updateTime();
-        display->showVersionBelow(version->getCurrentVersion());
-      }
-
-      if (millis() - t2 >= 1000 * 10) {
-        t2 = millis();
-        this->serverFirmwareCheck();
-      }
-      break;
-
-    default: break;
+/**
+ * @brief check update every tot seconds
+ */
+void SimpleOTA::checkUpdates(long seconds) {
+  if(network->isConnected()) {
+    if (millis() - t1 >= 1000 * seconds) {
+      t1 = millis();
+      this->serverFirmwareCheck();
+    } 
   }
-
-  buttonCont->loop();
-}
-
-void SimpleOTA::initDisplay() {
-  Serial.println("initDisplay");
-  display = new Display();
-  display->initTFT();
 }
 
 void SimpleOTA::initVersion() {
   Serial.println("initVersion");
-  version = new VersionCont();
-  display->showVersion(version->getCurrentVersion());
+  version = new VersionCont(network->getFreeEEPROMAddress());
+  Serial.println(version->getCurrentVersion());
 }
 
 void SimpleOTA::initNetwork() {
@@ -84,46 +51,25 @@ void SimpleOTA::initNetwork() {
   network = new Network();
   currentState = NETWORK_BEGIN;
   network->WiFiBegin();
-  currentState = NETWORK_CONNECTED;
-  this->requestLocalServerTime();
 }
 
 void SimpleOTA::initFileIO() {
   Serial.println("initFileIO");
   fileIO = new FileIO();
-  //fileIO->format();
+  fileIO->format();
   fileIO->listSPIFFS();
 }
 
-void SimpleOTA::initButton() {
-  Serial.println("initButton");
-
-  void (*ptr)(void) = &buttonCallbackEvent;
-  buttonCont = new ButtonCont(ptr);
-}
-
-void SimpleOTA::requestLocalServerTime() {
-  network->fetchLocalServerTime();
-
-  if (network->getLocalServerTime() != 0) {
-    rtc.setTime(network->getLocalServerTime());
-    display->fillBlackScreen();
-    currentState = SERVER_FOUND;
-  }
-}
-
-void SimpleOTA::updateTime() {
-  struct tm timeinfo = rtc.getTimeStruct();
-  display->timeUpdate(rtc.getDate(), rtc.getTime());
-}
 
 void SimpleOTA::serverFirmwareCheck() {
   version->setNewFirmware(network->checkVersion());
   if (version->newFirmwareVersion() == -1) {
-    display->newMessage("Server Not Responding");
+    Serial.println("Server Not Responding");
   } else {
     if (version->hasNewUpdate()) {
-      display->newMessage("New Build Available! ->");
+      Serial.println("New Build Available!");
+      Serial.println("Starting the donwload!");
+      startDownload();
     }
   }
 }
@@ -141,33 +87,26 @@ void SimpleOTA::startDownload() {
   Serial.println(compareFileSize);
 
   if (compareMD5Checksum && compareFileSize) {
-    display->downloadSuccess();
+    Serial.println("Download Complete!");
     this->updateFirmware();
   } else {
-    display->downloadFailure(version->getCPName());
-    delay(5000);
-    display->fillBlackScreen();
+    Serial.println("Error donwloading the file!");
     currentState = SERVER_FOUND;
   }
 }
 
 void SimpleOTA::updateFirmware() {
   currentState = FIRMWARE_DOWNLOAD_START;
-  display->firmwareScreen(true, false);
-  Updater *updater = new Updater();
+  Serial.println("Starting the update!");
+  UpdaterISPPFS *updater = new UpdaterISPPFS();
   if (updater->updateFromFS(&fileIO)) {
     Serial.println("UPDATE DONE");
-
     currentState = FIRMWARE_UPDATED;
     version->saveVersion(version->newFirmwareVersion());
-    display->firmwareScreen(false, true);
-
     ESP.restart();
   } else {
     Serial.println("UPDATE FAILURE");
-    display->firmwareScreen(false, false);
     delay(3000);
-    display->fillBlackScreen();
     currentState = SERVER_FOUND;
   }
   delete updater;

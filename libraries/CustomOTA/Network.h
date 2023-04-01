@@ -1,21 +1,20 @@
 #include <ArduinoJson.h>
-#include <HTTPClient.h>
+#include <ESP8266HTTPClient.h>
 #include "FileIO.h"
+#include <WiFiManagerWithEEPROM.h>
 #include "MyFirmware.h"
 
 class Network {
 private:
   HTTPClient http;
   StaticJsonDocument<300> doc;
-  long localServerTime;
   typedef void (*FuncPtrInt)(int);
-
+  MyWifiManager *wifi;
 
 public:
-  Network();
   void WiFiBegin();
-  void fetchLocalServerTime();
-  long getLocalServerTime();
+  bool isConnected();
+  int getFreeEEPROMAddress();
   Firmware checkVersion();
   String fileDownload(FuncPtrInt callback, FileIO** fileIO, String target_path);
 };

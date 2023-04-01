@@ -1,8 +1,9 @@
 #ifndef FileIO_H_
 #define FileIO_H_
 
-#include "SPIFFS.h"
-#include "mbedtls/md.h"
+//#include "SPIFFS.h"
+#include "FS.h" //this is for the ESP8266
+#include <mbedtls/md.h>
 class FileIO {
 private:
   mbedtls_md_context_t ctx;

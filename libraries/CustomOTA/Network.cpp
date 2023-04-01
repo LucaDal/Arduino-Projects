@@ -1,60 +1,22 @@
 #include "Network.h"
-#include <WiFi.h>
-#define WIFI_SSID "ThatProject"
-#define WIFI_PASS "California"
 #define BASE_URL "http://192.168.0.2:9001/api"
 
 const String API_KEY = "THIS_IS_MY_OWN_API_KEY";
 
-Network::Network() {
-  localServerTime = 0;
-}
-
 void Network::WiFiBegin() {
-  WiFi.disconnect();
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
-
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(1000);
-    Serial.println("Connecting to WiFi..");
-  }
-
-  Serial.println("Connected to the WiFi network");
+  wifi = new MyWifiManager(512) 
+  Serial.println(wifi->connect());
 }
 
-void Network::fetchLocalServerTime() {
-  if ((WiFi.status() == WL_CONNECTED)) {
-    String targetURL = BASE_URL;
-    targetURL += "/get/time";
-
-    http.begin(targetURL);
-
-    if (http.GET() == HTTP_CODE_OK) {
-      String payload = http.getString();
-      Serial.println(payload);
-
-      DeserializationError error = deserializeJson(doc, payload);
-      if (error) {
-        Serial.print(F("deserializeJson() failed: "));
-        Serial.println(error.f_str());
-        return;
-      }
-
-      String time = doc["timestamp"];
-      Serial.println(time);
-      Serial.println(time.toInt());
-      localServerTime = time.toInt();
-
-    } else {
-      Serial.println("Error on HTTP request");
-    }
-
-    http.end();
+bool Network::isConnected(){
+  if( WiFi.status() == WL_CONNECTED ){
+    return true;
   }
+  return false;
 }
 
-long Network::getLocalServerTime() {
-  return localServerTime;
+int Network::getFreeEEPROMAddress(){
+  return wifi->getIndexEEPROM();
 }
 
 Firmware Network::checkVersion() {

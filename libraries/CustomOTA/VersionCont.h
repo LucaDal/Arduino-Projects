@@ -8,9 +8,9 @@ private:
   bool hasNewFirmware;
 
 public:
-  VersionCont();
+  VersionCont(int EEPROMAddress);
   int getCurrentVersion();
-  void saveVersion(int buildNum);
+  void saveVersion(int buildNum,int EEPROMAddress);
   void setNewFirmware(Firmware firmware);
   bool hasNewUpdate();
   bool md5CompareTo(String checksum);
