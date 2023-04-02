@@ -8,6 +8,8 @@ MPU6050 mpu;
 #include <SSD1306.h>
 #include <WiFiManagerWithEEPROM.h>
 #include "PCF8574.h"
+#include "SimpleOTA.h"
+SimpleOTA *simpleOTA;
 SSD1306 oled;
 MyWifiManager wifi(512);
 WiFiClient client;
@@ -278,7 +280,9 @@ void setup() {
   digitalWrite(TX, LOW);
   oled.initialize();
   oled.print("searching WiFi...");
-  oled.print(wifi.connect());
+  simpleOTA = new SimpleOTA();
+  simpleOTA->begin(512,"http://192.168.1.12:9001/api");
+  //oled.print(wifi.connect());
   delay(1000);
   connectToTheServer();
   delay(1000);
@@ -301,6 +305,9 @@ void setup() {
 // ================================================================
 String codePassed = "";
 void loop() {
+
+  simpleOTA->checkUpdates(10);
+
   if (digitalRead(TX) == HIGH) {
     if (mpuInterrupt) {  // wait for MPU interrupt or extra packet(s) available
       GetDMP();

@@ -1,10 +1,13 @@
 #include "Network.h"
-#define BASE_URL "http://192.168.0.2:9001/api"
 
 const String API_KEY = "THIS_IS_MY_OWN_API_KEY";
 
-void Network::WiFiBegin() {
-  wifi = new MyWifiManager(512) 
+Network::Network(const char * base_url){
+  this->BASE_URL = base_url;
+}
+
+void Network::WiFiBegin(int EEPROMSize) {
+  wifi = new MyWifiManager(EEPROMSize);
   Serial.println(wifi->connect());
 }
 
@@ -28,7 +31,7 @@ Firmware Network::checkVersion() {
 
     String targetURL = BASE_URL;
     targetURL += "/get/version";
-    http.begin(targetURL);
+    http.begin(wifiClient,targetURL);
 
     if (http.GET() == HTTP_CODE_OK) {
       String payload = http.getString();
@@ -58,7 +61,7 @@ Firmware Network::checkVersion() {
   return firmware;
 }
 
-String Network::fileDownload(FuncPtrInt callback, FileIO** fileIO, String target_path) {
+String Network::fileDownload(FileIO** fileIO, String target_path) {
 
   String md5CheckSum = "wrong";
 
@@ -68,46 +71,44 @@ String Network::fileDownload(FuncPtrInt callback, FileIO** fileIO, String target
     String targetURL = BASE_URL;
     targetURL += "/post/update";
 
-    http.begin(targetURL);
+    http.begin(wifiClient,targetURL);
     http.addHeader("Content-Type", "application/x-www-form-urlencoded");
     String httpRequestData = "api_key=" + API_KEY + "&target_path=" + target_path;
 
     if (file && http.POST(httpRequestData) == HTTP_CODE_OK) {
-      callback(0);
       (*fileIO)->mdContextInit();
 
       int fileSize = http.getSize();
       Serial.print("File Length: ");
       Serial.println(fileSize);
 
-      int unDownloadSize = fileSize;
+      int unDownloadSize = fileSize;//debug
       int downloadSize = 0;
-      int preDownloadedPercent = 0;
+      int preDownloadedPercent = 0;//debug
 
       uint8_t buff[128] = { 0 };
-
       WiFiClient* stream = http.getStreamPtr();
       while (http.connected() && (fileSize > 0 || fileSize == -1)) {
         size_t size = stream->available();
         if (size) {
-          int c = stream->readBytes(buff, ((size > sizeof(buff)) ? sizeof(buff) : size));
-          file.write(buff, c);
-          (*fileIO)->mdContextUpdate(buff, c);
-
+          size_t c = stream->readBytes(buff, ((size > sizeof(buff)) ? sizeof(buff) : size));
+          if(file.write(buff, c) != c){
+            Serial.println("Error wrtining to the file");
+            break;
+          }
+          (*fileIO)->md5Update(buff, c);
           if (fileSize > 0) fileSize -= c;
-
           downloadSize += c;
           int downloadedPercent = int((downloadSize * 100 / unDownloadSize));
 
-          if (preDownloadedPercent != downloadedPercent) {
-            callback(downloadedPercent);
-            preDownloadedPercent = downloadedPercent;
-          }
+          if (preDownloadedPercent != downloadedPercent) {//debug
+            Serial.println(String(downloadedPercent));//debug
+            preDownloadedPercent = downloadedPercent;//debug
+          }//debug
         }
-
         delay(1);
       }
-
+      Serial.printf("file size written: %i\n",file.size());
       Serial.println();
       Serial.print("[HTTP] connection closed or file end.\n");
 

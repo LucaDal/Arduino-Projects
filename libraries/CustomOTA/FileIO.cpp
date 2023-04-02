@@ -1,27 +1,27 @@
 #include "FileIO.h"
 
 FileIO::FileIO() {
-  if (!SPIFFS.begin()) {
+  if (!LittleFS.begin()) {
     //if (!SPIFFS.begin(true)) {
-    Serial.println("SPIFFS initialisation failed!");
+    Serial.println("LittleFS initialisation failed!");
     while (1) yield();
   }
 }
 
 void FileIO::format() {
-  Serial.println("SPIFFS Format!");
-  SPIFFS.format();
+  Serial.println("LittleFS Format!");
+  LittleFS.format();
 }
 
 void FileIO::listSPIFFS() {
-  Serial.println(F("\r\nListing SPIFFS files:"));
+  Serial.println(F("\r\nListing LittleFS files:"));
   static const char line[] PROGMEM = "=================================================";
 
   Serial.println(FPSTR(line));
   Serial.println(F("  File name                              Size"));
   Serial.println(FPSTR(line));
 
-  fs::File root = SPIFFS.open("/");
+  fs::File root = LittleFS.open("/","r");
   if (!root) {
     Serial.println(F("Failed to open directory"));
     return;
@@ -41,7 +41,7 @@ void FileIO::listSPIFFS() {
     } else {
       String fileName = file.name();
       Serial.print("  " + fileName);
-      // File path can be 31 characters maximum in SPIFFS
+      // File path can be 31 characters maximum in LittleFS
       int spaces = 33 - fileName.length();  // Tabulate nicely
       if (spaces < 1) spaces = 1;
       while (spaces--) Serial.print(" ");
@@ -61,10 +61,10 @@ void FileIO::listSPIFFS() {
 
 fs::File FileIO::openFile(String fileName, bool isReadOnly) {
   if (isReadOnly) {
-    return SPIFFS.open(fileName, "r");
+    return LittleFS.open(fileName, "r");
   } else {
     this->removeFile(fileName);
-    return SPIFFS.open(fileName, "w");
+    return LittleFS.open(fileName, "w");
   }
 }
 
@@ -73,23 +73,41 @@ void FileIO::closeFile(fs::File file) {
 }
 
 void FileIO::removeFile(String fileName) {
-  if (SPIFFS.exists(fileName)) {
-    SPIFFS.remove(fileName);
+  if (LittleFS.exists(fileName)) {
+    LittleFS.remove(fileName);
   }
 }
 
 int FileIO::getFileSize(String fileName) {
-  fs::File file = SPIFFS.open(fileName, "r");
+  fs::File file = LittleFS.open(fileName, "r");
 
-  if (!file) {
-    return 0;
+  if (file) {
+    int fileSize = file.size();
+    file.close();
+    Serial.printf("filesize: %i\n", fileSize);
+    return fileSize;
   }
-
-  int fileSize = file.size();
-  file.close();
-  return fileSize;
+  Serial.println("file doesn't exists");
+  return 0;
 }
 
+void FileIO::md5Update(const unsigned char* buff, int c) {
+  md5->add(buff,c);
+}
+
+String FileIO::md5Result() {
+  md5->calculate();
+  String md5String = md5->toString();
+  delete md5;
+  return md5String;
+}
+
+void FileIO::mdContextInit() {
+  md5 = new MD5Builder();
+  md5->begin();
+}
+
+/* those function works with esp32 core library
 void FileIO::mdContextInit() {
   mbedtls_md_type_t md_type = MBEDTLS_MD_MD5;
   mbedtls_md_init(&ctx);
@@ -115,3 +133,4 @@ String FileIO::md5Result() {
   }
   return checksum;
 }
+*/

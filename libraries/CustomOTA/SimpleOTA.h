@@ -2,15 +2,6 @@
 #include "Network.h"
 #include "UpdaterISPPFS.h"
 
-typedef enum {
-  NONE,
-  NETWORK_BEGIN,
-  NETWORK_CONNECTED,
-  NETWORK_DISCONNECTED,
-  SERVER_FOUND,
-  FIRMWARE_DOWNLOAD_START,
-  FIRMWARE_UPDATED
-} SimpleOTA_State_t;
 
 class SimpleOTA {
 private:
@@ -21,18 +12,14 @@ private:
   unsigned long t1;
 
   void initVersion();
-  void initNetwork();
+  void initNetwork(int EEPROMSize, const char * base_url);
   void initFileIO();
   void serverFirmwareCheck();
   void startDownload();
   void updateFirmware();
-  friend void networkDownloadEvent(int percent);
-
-  SimpleOTA_State_t currentState;
 
 public:
   SimpleOTA();
-  ~SimpleOTA();
-  void begin();
-  void loop();
+  void begin(int EEPROMSize,const char * base_url);
+  void checkUpdates(unsigned long seconds);
 };

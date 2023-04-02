@@ -6,11 +6,11 @@ private:
   void loadVersion();
   Firmware newFirmware;
   bool hasNewFirmware;
-
+  int EEPROMAddress;
 public:
   VersionCont(int EEPROMAddress);
   int getCurrentVersion();
-  void saveVersion(int buildNum,int EEPROMAddress);
+  void saveVersion(int buildNum);
   void setNewFirmware(Firmware firmware);
   bool hasNewUpdate();
   bool md5CompareTo(String checksum);

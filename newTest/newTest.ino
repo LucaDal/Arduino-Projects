@@ -14,8 +14,11 @@ RTC_DS1307 rtc;
 #include <ESP8266WiFi.h>
 const char *ssid     = "Vodafone-A82448034";
 const char *password = "2piedinidimoira";
-
+MD5Builder md5;
 void setup() {
+  md5.begin()
+  md5.
+
   // put your setup code here, to run once:
   Wire.begin(2,0);
   WiFi.begin(ssid, password);

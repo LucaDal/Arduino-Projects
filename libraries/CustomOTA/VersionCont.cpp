@@ -3,7 +3,8 @@
 #define EEPROM_SIZE 512
 
 VersionCont::VersionCont(int EEPROMAddress) {
-  this->loadVersion(EEPROMAddress);
+  this->EEPROMAddress = EEPROMAddress;
+  this->loadVersion();
   hasNewFirmware = false;
 }
 
@@ -11,17 +12,17 @@ int VersionCont::getCurrentVersion() {
   return firmwareVersion;
 }
 
-void VersionCont::loadVersion(int EEPROMAddress) {
+void VersionCont::loadVersion() {
   EEPROM.begin(EEPROM_SIZE);
   firmwareVersion = EEPROM.read(EEPROMAddress);
 
   if (firmwareVersion >= 255 || firmwareVersion == 0) {
     firmwareVersion = 1;
-    this->saveVersion(firmwareVersion,EEPROMAddress);
+    this->saveVersion(firmwareVersion);
   }
 }
 
-void VersionCont::saveVersion(int buildNum, int EEPROMAddress ) {
+void VersionCont::saveVersion(int buildNum) {
   if (buildNum > 255) buildNum = 255;
   EEPROM.write(EEPROMAddress, buildNum);
   EEPROM.commit();

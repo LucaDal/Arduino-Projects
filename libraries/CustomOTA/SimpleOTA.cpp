@@ -4,40 +4,29 @@
 static SimpleOTA *instance = NULL;
 
 SimpleOTA::SimpleOTA() {
+  Serial.println("starting the OTA client");
   t1 = 0;
-  t2 = 0;
-  currentState = NONE;
   instance = this;
 }
 
-SimpleOTA::~SimpleOTA() {
-}
-
-
-void networkDownloadEvent(int percent) {
-  Serial.print("networkDownloadEvent downloadPercent: ");
-  if (percent == 0) {
-    instance->currentState = FIRMWARE_DOWNLOAD_START;
-  }
-  Serial.println(percent);
-}
-
-void SimpleOTA::begin() {
+void SimpleOTA::begin(int EEPROMSize,const char * base_url) {
+  this->initNetwork(EEPROMSize, base_url);
   this->initVersion();
-  this->initNetwork();
   this->initFileIO();
 }
 
 /**
  * @brief check update every tot seconds
+ * called from the main thread
  */
-void SimpleOTA::checkUpdates(long seconds) {
-  if(network->isConnected()) {
+void SimpleOTA::checkUpdates(unsigned long seconds) {
+  
     if (millis() - t1 >= 1000 * seconds) {
       t1 = millis();
-      this->serverFirmwareCheck();
-    } 
-  }
+      if(network->isConnected()) {
+        this->serverFirmwareCheck();
+      } 
+    }
 }
 
 void SimpleOTA::initVersion() {
@@ -46,17 +35,16 @@ void SimpleOTA::initVersion() {
   Serial.println(version->getCurrentVersion());
 }
 
-void SimpleOTA::initNetwork() {
+void SimpleOTA::initNetwork(int EEPROMSize, const char * base_url) {
   Serial.println("initNetwork");
-  network = new Network();
-  currentState = NETWORK_BEGIN;
-  network->WiFiBegin();
+  network = new Network(base_url); 
+  network->WiFiBegin(EEPROMSize);
 }
 
 void SimpleOTA::initFileIO() {
   Serial.println("initFileIO");
   fileIO = new FileIO();
-  fileIO->format();
+  //fileIO->format();
   fileIO->listSPIFFS();
 }
 
@@ -76,9 +64,9 @@ void SimpleOTA::serverFirmwareCheck() {
 
 void SimpleOTA::startDownload() {
 
-  void (*ptr)(int) = &networkDownloadEvent;
+  //void (*ptr)(int) = &networkDownloadEvent;
 
-  bool compareMD5Checksum = version->md5CompareTo(network->fileDownload(ptr, &fileIO, version->getFirmwareServerPath()));
+  bool compareMD5Checksum = version->md5CompareTo(network->fileDownload(&fileIO, version->getFirmwareServerPath()));
   bool compareFileSize = version->fileSizeCompareTo(fileIO->getFileSize(FileIO::TEMP_BIN_FILE));
 
   Serial.println("======compareMD5Checksum");
@@ -91,23 +79,19 @@ void SimpleOTA::startDownload() {
     this->updateFirmware();
   } else {
     Serial.println("Error donwloading the file!");
-    currentState = SERVER_FOUND;
   }
 }
 
 void SimpleOTA::updateFirmware() {
-  currentState = FIRMWARE_DOWNLOAD_START;
   Serial.println("Starting the update!");
   UpdaterISPPFS *updater = new UpdaterISPPFS();
   if (updater->updateFromFS(&fileIO)) {
     Serial.println("UPDATE DONE");
-    currentState = FIRMWARE_UPDATED;
     version->saveVersion(version->newFirmwareVersion());
     ESP.restart();
   } else {
     Serial.println("UPDATE FAILURE");
     delay(3000);
-    currentState = SERVER_FOUND;
   }
   delete updater;
 }

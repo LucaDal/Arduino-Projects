@@ -7,14 +7,17 @@
 class Network {
 private:
   HTTPClient http;
+  WiFiClient wifiClient;
   StaticJsonDocument<300> doc;
   typedef void (*FuncPtrInt)(int);
   MyWifiManager *wifi;
+  const char * BASE_URL;
 
 public:
-  void WiFiBegin();
+  Network(const char *base_url);
+  void WiFiBegin(int EEPROMSize);
   bool isConnected();
   int getFreeEEPROMAddress();
   Firmware checkVersion();
-  String fileDownload(FuncPtrInt callback, FileIO** fileIO, String target_path);
+  String fileDownload(FileIO** fileIO, String target_path);
 };
