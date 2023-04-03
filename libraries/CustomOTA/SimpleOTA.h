@@ -1,25 +1,26 @@
-#include "VersionCont.h"
+#ifndef SIMLPEOTA_H
+#define SIMLPEOTA_H
+#include <Arduino.h>
+#include "FirmwareData.h"
 #include "Network.h"
-#include "UpdaterISPPFS.h"
-
 
 class SimpleOTA {
 private:
-  VersionCont *version;
+  FirmwareData *version;
   Network *network;
-  FileIO *fileIO;
 
   unsigned long t1;
 
   void initVersion();
   void initNetwork(int EEPROMSize, const char * base_url);
-  void initFileIO();
   void serverFirmwareCheck();
   void startDownload();
-  void updateFirmware();
+  //void updateFirmware();
 
 public:
   SimpleOTA();
   void begin(int EEPROMSize,const char * base_url);
   void checkUpdates(unsigned long seconds);
 };
+
+#endif

@@ -1,6 +1,9 @@
+#ifndef NETWORK_H
+#define NETWORK_H
+
 #include <ArduinoJson.h>
 #include <ESP8266HTTPClient.h>
-#include "FileIO.h"
+#include "MyUpdater.h"
 #include <WiFiManagerWithEEPROM.h>
 #include "MyFirmware.h"
 
@@ -12,12 +15,13 @@ private:
   typedef void (*FuncPtrInt)(int);
   MyWifiManager *wifi;
   const char * BASE_URL;
-
+  const char * target_path;
 public:
   Network(const char *base_url);
   void WiFiBegin(int EEPROMSize);
   bool isConnected();
   int getFreeEEPROMAddress();
   Firmware checkVersion();
-  String fileDownload(FileIO** fileIO, String target_path);
+  bool fileDownload(String target_path);
 };
+#endif

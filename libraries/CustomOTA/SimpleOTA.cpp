@@ -1,4 +1,3 @@
-#include <Arduino.h>
 #include "SimpleOTA.h"
 
 static SimpleOTA *instance = NULL;
@@ -12,7 +11,6 @@ SimpleOTA::SimpleOTA() {
 void SimpleOTA::begin(int EEPROMSize,const char * base_url) {
   this->initNetwork(EEPROMSize, base_url);
   this->initVersion();
-  this->initFileIO();
 }
 
 /**
@@ -31,8 +29,8 @@ void SimpleOTA::checkUpdates(unsigned long seconds) {
 
 void SimpleOTA::initVersion() {
   Serial.println("initVersion");
-  version = new VersionCont(network->getFreeEEPROMAddress());
-  Serial.println(version->getCurrentVersion());
+  version = new FirmwareData(network->getFreeEEPROMAddress());
+  Serial.printf("Current Version: %s\n",version->getCurrentVersion().c_str());
 }
 
 void SimpleOTA::initNetwork(int EEPROMSize, const char * base_url) {
@@ -41,17 +39,18 @@ void SimpleOTA::initNetwork(int EEPROMSize, const char * base_url) {
   network->WiFiBegin(EEPROMSize);
 }
 
-void SimpleOTA::initFileIO() {
-  Serial.println("initFileIO");
-  fileIO = new FileIO();
-  //fileIO->format();
-  fileIO->listSPIFFS();
+void SimpleOTA::startDownload() {
+  if(network->fileDownload(version->getFirmwareServerPath())){
+    version->saveVersion(version->newFirmwareVersion());//save only if update goes fine
+    Serial.println("Restarting");
+    delay(1000); // Wait a second and restart
+    ESP.restart();
+  }
 }
-
 
 void SimpleOTA::serverFirmwareCheck() {
   version->setNewFirmware(network->checkVersion());
-  if (version->newFirmwareVersion() == -1) {
+  if (version->newFirmwareVersion() == "-1") {
     Serial.println("Server Not Responding");
   } else {
     if (version->hasNewUpdate()) {
@@ -62,36 +61,4 @@ void SimpleOTA::serverFirmwareCheck() {
   }
 }
 
-void SimpleOTA::startDownload() {
 
-  //void (*ptr)(int) = &networkDownloadEvent;
-
-  bool compareMD5Checksum = version->md5CompareTo(network->fileDownload(&fileIO, version->getFirmwareServerPath()));
-  bool compareFileSize = version->fileSizeCompareTo(fileIO->getFileSize(FileIO::TEMP_BIN_FILE));
-
-  Serial.println("======compareMD5Checksum");
-  Serial.println(compareMD5Checksum);
-  Serial.println("======Downloaded File SIze");
-  Serial.println(compareFileSize);
-
-  if (compareMD5Checksum && compareFileSize) {
-    Serial.println("Download Complete!");
-    this->updateFirmware();
-  } else {
-    Serial.println("Error donwloading the file!");
-  }
-}
-
-void SimpleOTA::updateFirmware() {
-  Serial.println("Starting the update!");
-  UpdaterISPPFS *updater = new UpdaterISPPFS();
-  if (updater->updateFromFS(&fileIO)) {
-    Serial.println("UPDATE DONE");
-    version->saveVersion(version->newFirmwareVersion());
-    ESP.restart();
-  } else {
-    Serial.println("UPDATE FAILURE");
-    delay(3000);
-  }
-  delete updater;
-}

@@ -4,7 +4,7 @@
 
 struct firmware_t {
   String company;
-  int build_num;
+  String build_num;
   String build_date;
   String server_file_path;
   int file_size;

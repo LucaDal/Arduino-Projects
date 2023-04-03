@@ -30,7 +30,7 @@ Firmware Network::checkVersion() {
   if ((WiFi.status() == WL_CONNECTED)) {
 
     String targetURL = BASE_URL;
-    targetURL += "/get/version";
+    targetURL += "/api/get/version";
     http.begin(wifiClient,targetURL);
 
     if (http.GET() == HTTP_CODE_OK) {
@@ -45,7 +45,7 @@ Firmware Network::checkVersion() {
       }
 
       firmware.company = doc["companyName"].as<String>();
-      firmware.build_num = doc["buildNum"];
+      firmware.build_num = doc["buildNum"].as<String>();
       firmware.build_date = doc["buildDate"].as<String>();
       firmware.server_file_path = doc["serverFilePath"].as<String>();
       firmware.file_size = doc["fileSize"];
@@ -61,71 +61,14 @@ Firmware Network::checkVersion() {
   return firmware;
 }
 
-String Network::fileDownload(FileIO** fileIO, String target_path) {
-
-  String md5CheckSum = "wrong";
-
+bool Network::fileDownload(String target_path){
+  String targetURL = BASE_URL;
+  targetURL += "/api/post/update";
   if ((WiFi.status() == WL_CONNECTED)) {
-    fs::File file = (*fileIO)->openFile(FileIO::TEMP_BIN_FILE, false);
-
-    String targetURL = BASE_URL;
-    targetURL += "/post/update";
-
-    http.begin(wifiClient,targetURL);
-    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-    String httpRequestData = "api_key=" + API_KEY + "&target_path=" + target_path;
-
-    if (file && http.POST(httpRequestData) == HTTP_CODE_OK) {
-      (*fileIO)->mdContextInit();
-
-      int fileSize = http.getSize();
-      Serial.print("File Length: ");
-      Serial.println(fileSize);
-
-      int unDownloadSize = fileSize;//debug
-      int downloadSize = 0;
-      int preDownloadedPercent = 0;//debug
-
-      uint8_t buff[128] = { 0 };
-      WiFiClient* stream = http.getStreamPtr();
-      while (http.connected() && (fileSize > 0 || fileSize == -1)) {
-        size_t size = stream->available();
-        if (size) {
-          size_t c = stream->readBytes(buff, ((size > sizeof(buff)) ? sizeof(buff) : size));
-          if(file.write(buff, c) != c){
-            Serial.println("Error wrtining to the file");
-            break;
-          }
-          (*fileIO)->md5Update(buff, c);
-          if (fileSize > 0) fileSize -= c;
-          downloadSize += c;
-          int downloadedPercent = int((downloadSize * 100 / unDownloadSize));
-
-          if (preDownloadedPercent != downloadedPercent) {//debug
-            Serial.println(String(downloadedPercent));//debug
-            preDownloadedPercent = downloadedPercent;//debug
-          }//debug
-        }
-        delay(1);
-      }
-      Serial.printf("file size written: %i\n",file.size());
-      Serial.println();
-      Serial.print("[HTTP] connection closed or file end.\n");
-
-
-      (*fileIO)->closeFile(file);
-      (*fileIO)->listSPIFFS();
-      Serial.println("======MD5 CHECKSUM");
-      md5CheckSum = (*fileIO)->md5Result();
-      Serial.println(md5CheckSum);
-
-
-    } else {
-      Serial.println("Error on HTTP request");
-    }
-
-    http.end();
+    String httpRequestData = targetURL + "&api_key=" + API_KEY + "&target_path=" + target_path;
+    MyUpdater update = MyUpdater();
+    return update.startUpdate(wifiClient,httpRequestData);
   }
-
-  return md5CheckSum;
+  return false;
 }
+

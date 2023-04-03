@@ -7,11 +7,20 @@ app = Flask(__name__)
 # ================================================
 target_file = "Simple_OTA_Application.ino.bin"
 company_name = 'LucaLab'
-build_num = 10
+build_num = "0.5"
 build_date = '02-04-2023'
 API_KEY = 'THIS_IS_MY_OWN_API_KEY'
 # ================================================
 path = os.path.join("C:/Users/Luca/Documents/Arduino/libraries/CustomOTA/Simple_OTA_Application/build/esp8266.esp8266.generic", target_file )
+
+@app.route('/api/post/update&api_key=THIS_IS_MY_OWN_API_KEY&target_path=Simple_OTA_Application.ino.bin', methods=['GET','POST'])
+def api_update_prova():
+    print(request.headers)
+    try:
+        return send_file(os.path.join("C:/Users/Luca/Documents/Arduino/libraries/CustomOTA/Simple_OTA_Application/build/esp8266.esp8266.generic", "Simple_OTA_Application.ino.bin"))
+    except Exception as e:
+            return str(e)
+    
 
 @app.route('/api/post/update', methods=['POST'])
 def api_update():
