@@ -10,7 +10,7 @@ MPU6050 mpu;
 #include "PCF8574.h"
 #include "SimpleOTA.h"
 SimpleOTA *simpleOTA;
-SSD1306 oled;
+SSD1306 oled(128,32);
 MyWifiManager wifi(512);
 WiFiClient client;
 PCF8574 pcf8574(0x20,2,0);
@@ -26,10 +26,12 @@ bool dataIsSent = false;
 bool faceIsSetted = false;
 uint8_t sendingToRelatedCube = 0;
 char faceToSend;
+
 //===============CUBE-INFO======================
 const char *THIS_CUBE_CODE = "mimo";
 const char *RELATED_CUBE_CODE = "luca";
 //==============SERVER INFO=====================
+
 const char *host = "lucadalessandro.hopto.org";
 const uint16_t port = 50000;
 //IPAddress myServer(192, 168, 137, 221);
@@ -281,7 +283,7 @@ void setup() {
   oled.initialize();
   oled.print("searching WiFi...");
   simpleOTA = new SimpleOTA();
-  simpleOTA->begin(512,"http://192.168.1.12:9001/api");
+  simpleOTA->begin(512,"http://192.168.1.12:9001/api","APY_TOKEN");
   //oled.print(wifi.connect());
   delay(1000);
   connectToTheServer();
@@ -305,7 +307,6 @@ void setup() {
 // ================================================================
 String codePassed = "";
 void loop() {
-
   simpleOTA->checkUpdates(10);
 
   if (digitalRead(TX) == HIGH) {
