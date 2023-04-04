@@ -1,0 +1,10 @@
+{
+    "THIS_IS_MY_OWN_API_KEY":[
+        {
+            "companyName": "LucaLab",
+            "version": "0.2",
+            "buildDate": "03-04-2023",
+            "FilePath": "C:\\Users\\Luca\\Documents\\Arduino\\libraries\\MyCustomOTA\\Simple_OTA_Application\\build\\esp8266.esp8266.generic\\Simple_OTA_Application.ino.bin"
+        }
+    ]
+}
