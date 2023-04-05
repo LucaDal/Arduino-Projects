@@ -62,12 +62,13 @@ Firmware Network::checkVersion(String apy_key) {
   return firmware;
 }
 
-bool Network::fileDownload(String apy_key, String md5Checksum){
+bool Network::fileDownload(String apy_key, String md5Checksum, String currentVersion){
   String httpRequestData = BASE_URL;
   httpRequestData += "/api/post/update/" + apy_key;
   if ((WiFi.status() == WL_CONNECTED)) {
     MyUpdater update = MyUpdater(md5Checksum);
-    return update.startUpdate(wifiClient, httpRequestData);
+    http.begin(wifiClient,httpRequestData);
+    return update.startUpdate(http, currentVersion);
   }
   return false;
 }

@@ -24,6 +24,6 @@ public:
   bool isConnected();
   int getFreeEEPROMAddress();
   Firmware checkVersion(String apy_key);
-  bool fileDownload(String apy_key, String md5Checksum);
+  bool fileDownload(String apy_key, String md5Checksum, String currentVersion);
 };
 #endif

@@ -1,142 +1,27 @@
-#include "Wire.h"
-#include "I2Cdev.h"
-#include "MPU6050_6Axis_MotionApps20.h"
-MPU6050 mpu;
-
-//===========  My libreries  =================
-
 #include <SSD1306.h>
-#include <WiFiManagerWithEEPROM.h>
 #include "PCF8574.h"
 #include "SimpleOTA.h"
-SimpleOTA *simpleOTA;
+#include "MyMPU6050.h"
+SimpleOTA * simpleOTA  = new SimpleOTA();
+MyMPU6050 mpu = new MyMPU6050();
 SSD1306 oled(128,32);
-MyWifiManager wifi(512);
 WiFiClient client;
 PCF8574 pcf8574(0x20,2,0);
 #define RX 3
 #define TX 1
 #define TIME_DELAY_TO_RESEND_FACE 300000  //5 minuti
-char lastFace = 'A';
-char olderFace;
-size_t contIfFaceHasChanged = 0;  //if major of 5 seconds in position than surface has changed
 size_t contToSendData = 0;
 size_t secondToWaitBeforeSendingData = 0;  //at startup
 bool dataIsSent = false;
 bool faceIsSetted = false;
 uint8_t sendingToRelatedCube = 0;
-char faceToSend;
 
 //===============CUBE-INFO======================
 const char *THIS_CUBE_CODE = "mimo";
 const char *RELATED_CUBE_CODE = "luca";
 //==============SERVER INFO=====================
-
 const char *host = "lucadalessandro.hopto.org";
 const uint16_t port = 50000;
-//IPAddress myServer(192, 168, 137, 221);
-//=======================================
-
-// supply your own gyro offsets here, scaled for min sensitivity use MPU6050_calibration.ino
-//                       XA    YA    ZA   XG   YG  ZG
-int MPUOffsets[6] = { -3478, -129, 1808, 79, 13, 50 };
-
-// ================================================================
-// ===               INTERRUPT DETECTION ROUTINE                ===
-// ================================================================
-volatile bool mpuInterrupt = false;  // indicates whether MPU interrupt pin has gone high
-void IRAM_ATTR dmpDataReady() {      //IRAM_ATTR needed for the esp8266
-  mpuInterrupt = true;
-}
-
-// ================================================================
-// ===                      MPU DMP SETUP                       ===
-// ================================================================
-int FifoAlive = 0;  // tests if the interrupt is triggering
-int IsAlive = -20;  // counts interrupt start at -20 to get 20+ good values before assuming connected
-// MPU control/status vars
-uint8_t mpuIntStatus;    // holds actual interrupt status byte from MPU
-uint8_t devStatus;       // return status after each device operation (0 = success, !0 = error)
-uint16_t packetSize;     // expected DMP packet size (default is 42 bytes)
-uint16_t fifoCount;      // count of all bytes currently in FIFO
-uint8_t fifoBuffer[64];  // FIFO storage buffer
-// orientation/motion vars
-Quaternion q;         // [w, x, y, z]         quaternion container
-VectorInt16 aa;       // [x, y, z]            accel sensor measurements
-VectorInt16 aaReal;   // [x, y, z]            gravity-free accel sensor measurements
-VectorInt16 aaWorld;  // [x, y, z]            world-frame accel sensor measurements
-VectorFloat gravity;  // [x, y, z]            gravity vector
-float euler[3];       // [psi, theta, phi]    Euler angle container
-float ypr[3];         // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
-byte StartUP = 100;   // lets get 100 readings from the MPU before we start trusting them (Bot is not trying to balance at this point it is just starting up.)
-
-void MPU6050Connect() {
-  static int MPUInitCntr = 0;
-  // initialize device
-  mpu.initialize();  // same
-  // load and configure the DMP
-  devStatus = mpu.dmpInitialize();  // same
-
-  if (devStatus != 0) {
-    // ERROR!
-    // 1 = initial memory load failed
-    // 2 = DMP configuration updates failed
-    // (if it's going to break, usually the code will be 1)
-
-    String StatStr[5]{ "No Error", "initial memory load failed", "DMP configuration updates failed", "3", "4" };
-
-    MPUInitCntr++;
-
-    oled.print(F("MPU connection Try #"), 2, 0, 0);
-    delay(1000);
-    oled.print(String(MPUInitCntr), 2, 0, 0);
-    delay(1000);
-    oled.print(F("DMP Initialization failed (code "), 2, 0, 0);
-    delay(1000);
-    oled.print(StatStr[devStatus], 2, 0, 0);
-    delay(1000);
-    oled.print(F(")"), 2, 0, 0);
-
-    if (MPUInitCntr >= 10) return;  //only try 10 times
-    delay(1000);
-    MPU6050Connect();  // Lets try again
-    return;
-  }
-  mpu.setXAccelOffset(MPUOffsets[0]);
-  mpu.setYAccelOffset(MPUOffsets[1]);
-  mpu.setZAccelOffset(MPUOffsets[2]);
-  mpu.setXGyroOffset(MPUOffsets[3]);
-  mpu.setYGyroOffset(MPUOffsets[4]);
-  mpu.setZGyroOffset(MPUOffsets[5]);
-
-  mpu.setDMPEnabled(true);
-  attachInterrupt(RX, dmpDataReady, RISING);
-  mpuIntStatus = mpu.getIntStatus();
-  // get expected DMP packet size for later comparison
-  packetSize = mpu.dmpGetFIFOPacketSize();
-  delay(1000);      // Let it Stabalize
-  mpu.resetFIFO();  // Clear fifo buffer
-  mpu.getIntStatus();
-  mpuInterrupt = false;  // wait for next interrupt
-}
-
-
-void GetDMP() {  // Best version I have made so far
-  mpuInterrupt = false;
-  FifoAlive = 1;
-  fifoCount = mpu.getFIFOCount();
-  if ((!fifoCount) || (fifoCount % packetSize)) {  // we have failed Reset and wait till next time!
-                                                   //  digitalWrite(LED_PIN, LOW); // lets turn off the blinking light so we can see we are failing.
-    mpu.resetFIFO();                               // clear the buffer and start over
-  } else {
-    while (fifoCount >= packetSize) {            // Get the packets until we have the latest!
-      mpu.getFIFOBytes(fifoBuffer, packetSize);  // lets do the magic and get the data
-      fifoCount -= packetSize;
-    }
-    MPUMath();  // <<<<<<<<<<<<<<<<<<<<<<<<<<<< On success MPUMath() <<<<<<<<<<<<<<<<<<<
-  }
-}
-
 //====================================================================
 
 /*
@@ -145,6 +30,7 @@ it will try 10 times to communicate with delay of 30 seconds,
 if the face has arrived to the other cube then it will stop the communication
 */
 char getCubeFace(float *Y, float *P, float *R) {
+  char lastFace = 'A';
   if ((*R > -40 && *R < 40) && (*P < 40 && *P > -40)) {
     lastFace = 'A';
   } else if ((*R > 150 || *R < -150) && (*P < -140 || *P > 150)) {
@@ -164,6 +50,7 @@ char getCubeFace(float *Y, float *P, float *R) {
 }
 
 //====================================================================
+
 void sendFace() {
   for (static unsigned long SpamTimer; (unsigned long)(millis() - SpamTimer) >= 1000; SpamTimer = millis()) {
     contToSendData++;
@@ -216,28 +103,21 @@ bool updateServer() {
 //====================================================================
 
 int contTimes = 0;
-void MPUMath() {
-  float Y, P, R;
-  mpu.dmpGetQuaternion(&q, fifoBuffer);
-  mpu.dmpGetGravity(&gravity, &q);
-  mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
-  Y = (ypr[0] * 180.0 / M_PI);
-  P = (ypr[1] * 180.0 / M_PI);
-  R = (ypr[2] * 180.0 / M_PI);
-  for (static unsigned long SpamTimer; (unsigned long)(millis() - SpamTimer) >= 1000; SpamTimer = millis()) {
-    faceToSend = getCubeFace(&Y, &P, &R);
-    if (contTimes >= 3) {
+void checkUpdateFromMPU(){
+  if (digitalRead(TX) == HIGH) {// IT MEANS that the MPU is on
+    float Y,P,R
+    mpu.checkInterrupt(Y,P,R);
+    for (static unsigned long SpamTimer; (unsigned long)(millis() - SpamTimer) >= 1000; SpamTimer = millis()) { //after a second i set the cube face
+      char faceToSend = getCubeFace(&Y, &P, &R);
       digitalWrite(TX, LOW);
       oled.print(String(faceToSend));
-      faceIsSetted = true;
       if (faceToSend == 'N') {
         digitalWrite(TX, LOW);
         while (1) {
           //Lampeggia led rosso =====================
         }
       }
-    } else {
-      contTimes++;
+      faceIsSetted = true;
     }
   }
 }
@@ -282,10 +162,7 @@ void setup() {
   digitalWrite(TX, LOW);
   oled.initialize();
   oled.print("searching WiFi...");
-  simpleOTA = new SimpleOTA();
-  simpleOTA->begin(512,"http://192.168.1.12:9001/api","APY_TOKEN");
-  //oled.print(wifi.connect());
-  delay(1000);
+  simpleOTA.begin(512,"http://192.168.1.12:9001","APY_TOKEN");//it includes WifiManager
   connectToTheServer();
   delay(1000);
   oled.print("Connection with mpu");
@@ -308,13 +185,14 @@ void setup() {
 String codePassed = "";
 void loop() {
   simpleOTA->checkUpdates(10);
-
+  checkUpdateFromMPU();
   if (digitalRead(TX) == HIGH) {
     if (mpuInterrupt) {  // wait for MPU interrupt or extra packet(s) available
-      GetDMP();
+      updateFromMPU();
+      mpuLib.getYPR();
     }
   }
-  if (faceIsSetted && !dataIsSent && faceToSend != 'N') {
+  if (faceIsSetted && !dataIsSent) {
     sendFace();
   }
   while (client.available()) {  // data recived from the server/other cube (passed through the server);

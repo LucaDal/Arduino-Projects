@@ -1,11 +1,12 @@
 #include "SSD1306.h"
 
-
 SSD1306::SSD1306(int SCREEN_WIDTH,int SCREEN_HEIGHT){
   display = new Adafruit_SSD1306(SCREEN_WIDTH,SCREEN_HEIGHT);
 }
 
-void SSD1306::initialize(void){
+//Adafruit_SSD1306 display(128,32);
+
+void SSD1306::begin(void){
   display->begin(SSD1306_SWITCHCAPVCC, 0x3C);
 }
 

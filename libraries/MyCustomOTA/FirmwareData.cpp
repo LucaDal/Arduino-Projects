@@ -47,6 +47,7 @@ void FirmwareData::setNewFirmware(Firmware firmware) {
     Serial.printf("newFirmware.version = {%s} == {%s} : ",newFirmware.version.c_str(), firmware.version.c_str());
     Serial.println(newFirmware.version == firmware.version);
   #endif
+  oldFirmwareVersion = newFirmware.version;
   newFirmware = firmware;
   if (newFirmware.version != "-1") {
     #ifdef DEBUG
@@ -67,4 +68,8 @@ String FirmwareData::getFirmwareMD5Image() {
 
 String FirmwareData::getNewFirmwareVersion() {
   return newFirmware.version;
+}
+
+String FirmwareData::getOldFirmwareVersion() {
+  return oldFirmwareVersion;
 }

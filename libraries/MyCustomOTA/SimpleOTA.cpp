@@ -8,7 +8,6 @@ SimpleOTA::SimpleOTA() {
   #endif
   t1 = 0;
   instance = this;
-  
 }
 
 void SimpleOTA::begin(int EEPROMSize,const char * base_url, const char * API_KEY) {
@@ -22,7 +21,6 @@ void SimpleOTA::begin(int EEPROMSize,const char * base_url, const char * API_KEY
  * called from the main thread
  */
 void SimpleOTA::checkUpdates(unsigned long seconds) {
-  
     if (millis() >= t1) {
       t1 = millis() + 1000 * seconds;
       if(network->isConnected()) {
@@ -50,7 +48,7 @@ void SimpleOTA::initNetwork(int EEPROMSize, const char * base_url) {
 }
 
 void SimpleOTA::startDownload() {
-  if(network->fileDownload(API_KEY,version->getFirmwareMD5Image())){
+  if(network->fileDownload(API_KEY,version->getFirmwareMD5Image(),version->getOldFirmwareVersion())){
     version->saveVersion(version->getNewFirmwareVersion());//save only if update goes fine
     #ifdef DEBUG
       Serial.println("Restarting");

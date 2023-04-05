@@ -8,7 +8,7 @@
 class FirmwareData {
 private:
   Firmware newFirmware;
-  String FIRMWARE_VERSION;
+  String oldFirmwareVersion = "";
   void loadVersion();
   bool hasNewFirmware;
   int EEPROMAddress;
@@ -20,6 +20,7 @@ public:
   bool hasNewUpdate();
   String getFirmwareMD5Image();
   String getNewFirmwareVersion();
+  String getOldFirmwareVersion();
 };
 
 #endif 

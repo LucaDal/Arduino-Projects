@@ -14,13 +14,8 @@ DFRobot_SHT20 sht20;
 #define DHTPIN 3
 DHT dht(DHTPIN, DHTTYPE);
 
-#include <SPI.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
-#define SCREEN_WIDTH 128  // OLED display width, in pixels
-#define SCREEN_HEIGHT 32  // OLED display height, in pixels
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT);
-
+#include <SSD1306.h>
+SSD1306 oled(128,32);
 
 #define MOTOR 1
 
@@ -73,7 +68,7 @@ void setup() {
   // inizializzo i sensori:
   Wire.begin(2, 0);//sda - scl
   WiFi.begin(ssid, password);
-  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+  oled.begin();
   sht20.initSHT20();
   delay(100);
   sht20.checkSHT20();
@@ -92,8 +87,7 @@ void setup() {
 
   int cont = 20;
   while ((WiFi.status() != WL_CONNECTED)) {
-    display.clearDisplay();
-    printOnScreen("Connection...", 2, 0, 0);
+    oled.print("Connection...", 2, 0, 0);
     delay(500);
     cont--;
     if (cont < 0) {
@@ -101,46 +95,39 @@ void setup() {
     }
   }
   if (WiFi.status() == WL_CONNECTED) {
-    display.clearDisplay();
-    printOnScreen("Connected", 2, 0, 0);
+    oled.print("Connected", 2, 0, 0);
     delay(1000);
     askDataFromSiteAndUpdateEEPROM();  //Leggo i parametri dal sito
   } else {
-    display.clearDisplay();
-    printOnScreen("Error with WiFi", 1, 0, 0);
+    oled.print("Error with WiFi", 1, 0, 0);
     readDataFromEEPROM();
     delay(2000);
   }
 
-
-  display.clearDisplay();
-  printOnScreen(String(umid_to_water), 2, 0, 0);
-  printOnScreen("%", 2, 34, 0);
-  printOnScreen(String(ml_to_give), 2, 50, 0);
-  printOnScreen(String(millisec_to_adjust_water), 2, 0, 16);
-  printOnScreen("|", 2, 55, 16);
-  printOnScreen(String(ora_a), 2, 63, 16);
-  printOnScreen("->", 1, 96, 22);
-  printOnScreen(String(oraFineIrrigazione), 2, 108, 16);
+  oled.print(String(umid_to_water), 2, 0, 0);
+  oled.print("%", 2, 34, 0);
+  oled.print(String(ml_to_give), 2, 50, 0);
+  oled.print(String(millisec_to_adjust_water), 2, 0, 16);
+  oled.print("|", 2, 55, 16);
+  oled.print(String(ora_a), 2, 63, 16);
+  oled.print("->", 1, 96, 22);
+  oled.print(String(oraFineIrrigazione), 2, 108, 16);
 
   //Messaggio di benvenuto----------------
   delay(3000);
-  display.clearDisplay();
-  printOnScreen("Welcome", 2, 0, 0);
+  oled.print("Welcome", 2, 0, 0);
   display.clearDisplay();
   delay(1000);
   if (!rtc.begin()) {
-    display.clearDisplay();
-    printOnScreen("RTC error", 2, 0, 0);
+    oled.print("RTC error", 2, 0, 0);
     delay(2000);
   } else {
-    display.clearDisplay();
     DateTime now = rtc.now();
     hourInt = now.hour();
     minInt = now.minute();
-    printOnScreen(String(hourInt), 2, 0, 0);
-    printOnScreen(":", 2, 25, 0);
-    printOnScreen(String(minInt), 2, 55, 0);
+    oled.print(String(hourInt), 2, 0, 0);
+    oled.print(":", 2, 25, 0);
+    oled.print(String(minInt), 2, 55, 0);
     delay(2000);
     next_update = minInt;
   }
@@ -155,15 +142,6 @@ void updateIrrigationData() {
   if (oraFineIrrigazione >= 24) {
     oraFineIrrigazione -= 24;
   }
-}
-
-
-void printOnScreen(String text, int sizeText, int x, int y) {
-  display.setTextSize(sizeText);
-  display.setTextColor(WHITE);
-  display.setCursor(x, y);
-  display.println(text);
-  display.display();
 }
 
 
@@ -277,8 +255,7 @@ void askDataFromSiteAndUpdateEEPROM(void) {
         }
       }
     } else {
-      display.clearDisplay();
-      printOnScreen("Errore ricezzione dati", 1, 0, 0);
+      oled.print("Errore ricezzione dati", 1, 0, 0);
       delay(200);
     }
     http.end();
@@ -358,16 +335,16 @@ void loop() {
   if (currentMillis - previousMillisDisplay >= intervalDisplay) {
     previousMillisDisplay = currentMillis;
     if (!displayState) {
-      printOnScreen(HA, 2, 0, 0);
-      printOnScreen("%", 2, 34, 0);
-      printOnScreen(TA, 2, 64, 0);
-      printOnScreen((String)HT, 2, 0, 16);
-      printOnScreen("%", 2, 34, 16);
-      printOnScreen(TT, 2, 64, 16);
+      oled.print(HA, 2, 0, 0);
+      oled.print("%", 2, 34, 0);
+      oled.print(TA, 2, 64, 0);
+      oled.print((String)HT, 2, 0, 16);
+      oled.print("%", 2, 34, 16);
+      oled.print(TT, 2, 64, 16);
       displayState = true;
       intervalDisplay = 2000;  //time data view
     } else {
-      display.clearDisplay();
+      oled.clear();
       display.display();
       intervalDisplay = 6000;  //time black screen
       displayState = false;
@@ -384,12 +361,10 @@ void loop() {
     cont_to_update_data += 1;
     if (cont_to_update_data >= 6) {  //ogni 3 ore aggiorno i dati poiche aggiorno ogni mezzora 12/2
       cont_to_update_data = 0;
-      display.clearDisplay();
-      printOnScreen("asking data", 2, 0, 0);
+      oled.print("asking data", 2, 0, 0);
       askDataFromSiteAndUpdateEEPROM();
     }
-    display.clearDisplay();
-    printOnScreen("Sending data", 2, 0, 0);
+    oled.print("Sending data", 2, 0, 0);
     sendDataToSite(String(hourInt), String(minInt), TA, TT, HA, String(HT));
   }
 }

@@ -6,14 +6,13 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include "Arduino.h"
-/*Class for screen 128 by 32*/
+
 class SSD1306{
     private:
         Adafruit_SSD1306 *display;
     public:
-        /*Construct*/
         SSD1306(int SCREEN_WIDTH,int SCREEN_HEIGHT);
-        void initialize(void);
+        void begin(void);
         /*Print formatted text to oled*/
         void print(String text, int sizeText, int x, int y);
         /*Print text to oled already formatted*/

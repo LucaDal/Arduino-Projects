@@ -27,13 +27,13 @@ MyUpdater::MyUpdater(String md5Checksum){
     ESPhttpUpdate.setMD5sum(md5Checksum);
 }
 
-bool MyUpdater::startUpdate(WiFiClient wifiClient, String BASE_URL){
-    t_httpUpdate_return ret = ESPhttpUpdate.update(wifiClient, BASE_URL);
+bool MyUpdater::startUpdate(HTTPClient &http, String currentFirmwareVersion){
+    t_httpUpdate_return ret = ESPhttpUpdate.update(http, currentFirmwareVersion);
     switch (ret) {
       case HTTP_UPDATE_FAILED:
         #ifdef DEBUG
           Serial.printf("HTTP_UPDATE_FAILD Error (%d): %s\n", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
-          Serial.println(F("Retry in 10secs!"));
+          Serial.println(F("Retry in passed secs!"));
         #endif
         return false;
  

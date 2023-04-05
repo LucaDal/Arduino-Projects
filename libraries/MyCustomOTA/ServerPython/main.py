@@ -13,7 +13,7 @@ app = Flask(__name__)
 
 @app.route('/api/post/update/<api_key>', methods=['GET','POST'])
 def api_update_prova(api_key):
-    print(request.headers)
+    print(request.headers['X-Esp8266-Version'])
     if api_key in API_TOKEN_LIST:
         try:
             return send_file(API_TOKEN_LIST[api_key][0]['FilePath'])
@@ -25,7 +25,7 @@ def version(api_key):
     with open(API_TOKEN_LIST[api_key][0]['FilePath'], "rb") as file_to_check:
         data = file_to_check.read()
         md5_returned = hashlib.md5(data).hexdigest()
-        print('md5_checksum is', md5_returned)
+        #print('md5_checksum is', md5_returned)
     value = {
         "version": API_TOKEN_LIST[api_key][0]['version'],
         "md5Checksum": md5_returned
@@ -50,4 +50,4 @@ def favicon():
 
 
 if __name__ == '__main__':
-    app.run(host='192.168.1.6', port=9001, debug=True)
+    app.run(host='192.168.1.4', port=9001, debug=True)
