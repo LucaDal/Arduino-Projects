@@ -1,18 +1,26 @@
 {
-    "THIS_IS_MY_OWN_API_KEY":[
-        {
-            "companyName": "LucaLab",
-            "version": "0.5",
-            "buildDate": "03-04-2023",
-            "FilePath": "C:\\Users\\Luca\\Documents\\Arduino\\libraries\\MyCustomOTA\\Simple_OTA_Application\\build\\esp8266.esp8266.generic\\Simple_OTA_Application.ino.bin"
-        }
-    ],
-    "APY_TOKEN":[
-        {
-                    "companyName": "LucaLab",
-                    "version": "0.0",
-                    "buildDate": "04-04-2023",
-                    "FilePath": "C:\\Users\\Luca\\Documents\\Arduino\\provva_ota\\build\\esp8266.esp8266.generic\\provva_ota.ino.bin"
-        }
-    ]
+    "THIS_IS_MY_OWN_API_KEY": {
+        "companyName": "LucaLab",
+        "version": "0.5",
+        "buildDate": "03-04-2023",
+        "FilePath": "C:\\Users\\Luca\\Documents\\Arduino\\libraries\\MyCustomOTA\\Simple_OTA_Application\\build\\esp8266.esp8266.generic\\Simple_OTA_Application.ino.bin"
+    },
+    "APY_TOKEN": {
+        "companyName": "LucaLab",
+        "version": "0.0",
+        "buildDate": "04-04-2023",
+        "FilePath": "C:\\Users\\Luca\\Documents\\Arduino\\provva_ota\\build\\esp8266.esp8266.generic\\provva_ota.ino.bin"
+    },
+    "bene": {
+        "companyName": "LucaLab",
+        "version": "0.9",
+        "buildDate": "09/04/2023",
+        "fileName": "Simple_OTA_Application.ino.bin"
+    },
+    "culo": {
+        "companyName": "LucaLab",
+        "version": "0.9",
+        "buildDate": "09/04/2023",
+        "fileName": "Simple_OTA_Application.ino.map"
+    }
 }

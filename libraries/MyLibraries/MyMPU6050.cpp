@@ -1,7 +1,6 @@
-#include "Wire.h"
-#include "I2Cdev.h"
-#include "MPU6050_6Axis_MotionApps20.h"
+#include "MyMPU6050.h"
 MPU6050 mpu;
+
 
 // ================================================================
 // ===               INTERRUPT DETECTION ROUTINE                ===
@@ -31,11 +30,17 @@ float euler[3];       // [psi, theta, phi]    Euler angle container
 float ypr[3];         // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
 byte StartUP = 100;   // lets get 100 readings from the MPU before we start trusting them (Bot is not trying to balance at this point it is just starting up.)
 
+//=========================================================================
+
+MyMPU6050::MyMPU6050(uint8_t interruptPin){
+  this->interruptPin = interruptPin;
+}
+
 /*
  supply your own gyro offsets here, scaled for min sensitivity use MPU6050_calibration.ino
                        XA    YA    ZA   XG   YG  ZG
 */
-void MyMPU6050::begin(int *XA, int *YA, int *ZA, int *XG, int *YG, int *ZG) {
+void MyMPU6050::begin(int XA, int YA, int ZA, int XG, int YG, int ZG) {
   static int MPUInitCntr = 0;
   // initialize device
   mpu.initialize();  // same
@@ -47,11 +52,9 @@ void MyMPU6050::begin(int *XA, int *YA, int *ZA, int *XG, int *YG, int *ZG) {
     // 1 = initial memory load failed
     // 2 = DMP configuration updates failed
     // (if it's going to break, usually the code will be 1)
-
-    String StatStr[5]{ "No Error", "initial memory load failed", "DMP configuration updates failed", "3", "4" };
-
     MPUInitCntr++;
-
+    #ifdef DEBUG
+    String StatStr[5]{ "No Error", "initial memory load failed", "DMP configuration updates failed", "3", "4" };
     oled.print(F("MPU connection Try #"), 2, 0, 0);
     delay(1000);
     oled.print(String(MPUInitCntr), 2, 0, 0);
@@ -61,21 +64,20 @@ void MyMPU6050::begin(int *XA, int *YA, int *ZA, int *XG, int *YG, int *ZG) {
     oled.print(StatStr[devStatus], 2, 0, 0);
     delay(1000);
     oled.print(F(")"), 2, 0, 0);
-
+    #endif
     if (MPUInitCntr >= 10) return;  //only try 10 times
     delay(1000);
     begin(XA,YA,ZA,XG,YG,ZG);   //Lets try again
     return;
   }
-  mpu.setXAccelOffset((*XA));
-  mpu.setYAccelOffset((*YA));
-  mpu.setZAccelOffset((*ZA));
-  mpu.setXGyroOffset((*XG));
-  mpu.setYGyroOffset((*YG));
-  mpu.setZGyroOffset((*ZG));
-
+  mpu.setXAccelOffset(XA);
+  mpu.setYAccelOffset(YA);
+  mpu.setZAccelOffset(ZA);
+  mpu.setXGyroOffset(XG);
+  mpu.setYGyroOffset(YG);
+  mpu.setZGyroOffset(ZG);
   mpu.setDMPEnabled(true);
-  attachInterrupt(RX, dmpDataReady, RISING);
+  attachInterrupt(interruptPin, dmpDataReady, RISING);
   mpuIntStatus = mpu.getIntStatus();
   // get expected DMP packet size for later comparison
   packetSize = mpu.dmpGetFIFOPacketSize();
@@ -84,7 +86,6 @@ void MyMPU6050::begin(int *XA, int *YA, int *ZA, int *XG, int *YG, int *ZG) {
   mpu.getIntStatus();
   mpuInterrupt = false;  // wait for next interrupt
 }
-
 
 void MPUMath(float *Y, float *P, float *R) {
   mpu.dmpGetQuaternion(&q, fifoBuffer);
@@ -95,7 +96,7 @@ void MPUMath(float *Y, float *P, float *R) {
   (*R) = (ypr[2] * 180.0 / M_PI);
 }
 
-void MyMPU6050::getYPR(float *Y, float *P, float *R) {  // Best version I have made so far
+void getYPR(float *Y, float *P, float *R) {  // Best version I have made so far
   mpuInterrupt = false;
   FifoAlive = 1;
   fifoCount = mpu.getFIFOCount();
@@ -115,6 +116,6 @@ void MyMPU6050::getYPR(float *Y, float *P, float *R) {  // Best version I have m
 
 void MyMPU6050::checkInterrupt(float *Y, float *P, float *R){
   if (mpuInterrupt){
-    getYPR(*Y,*P,*R)
+    getYPR(Y,P,R);
   }
 }

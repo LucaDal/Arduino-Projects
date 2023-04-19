@@ -23,13 +23,13 @@ bool getConnectionReadingEEPROM(void){
     for(uint8_t i = 32; i < 64; ++i){
         epass += char(EEPROM.read(i));
     }
-    #ifdef DEBUG
+    //#ifdef DEBUG
         Serial.print("Starting wifi on: {");
         Serial.print(esid.c_str());
         Serial.print("} - password: {");
         Serial.print(epass.c_str());
         Serial.println("}");
-    #endif
+    //#endif
     if (esid.length() > 1) {
         uint8_t tryall = 0;
         WiFi.begin(esid.c_str(), epass.c_str());

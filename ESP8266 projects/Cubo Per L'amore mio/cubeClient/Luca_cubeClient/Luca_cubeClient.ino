@@ -1,15 +1,16 @@
 #include <SSD1306.h>
 #include "PCF8574.h"
 #include "SimpleOTA.h"
-#include "MyMPU6050.h"
-SimpleOTA * simpleOTA  = new SimpleOTA();
-MyMPU6050 mpu = new MyMPU6050();
-SSD1306 oled(128,32);
-WiFiClient client;
-PCF8574 pcf8574(0x20,2,0);
+#include <MyMPU6050.h>
 #define RX 3
 #define TX 1
 #define TIME_DELAY_TO_RESEND_FACE 300000  //5 minuti
+SimpleOTA *simpleOTA = new SimpleOTA();
+MyMPU6050 myMpu(RX);
+SSD1306 oled(128, 32);
+WiFiClient client;
+PCF8574 pcf8574(0x20, 2, 0);
+char faceToSend;
 size_t contToSendData = 0;
 size_t secondToWaitBeforeSendingData = 0;  //at startup
 bool dataIsSent = false;
@@ -17,8 +18,8 @@ bool faceIsSetted = false;
 uint8_t sendingToRelatedCube = 0;
 
 //===============CUBE-INFO======================
-const char *THIS_CUBE_CODE = "mimo";
-const char *RELATED_CUBE_CODE = "luca";
+const char *THIS_CUBE_CODE = "luca";
+const char *RELATED_CUBE_CODE = "mimo";
 //==============SERVER INFO=====================
 const char *host = "lucadalessandro.hopto.org";
 const uint16_t port = 50000;
@@ -102,17 +103,15 @@ bool updateServer() {
 
 //====================================================================
 
-int contTimes = 0;
-void checkUpdateFromMPU(){
-  if (digitalRead(TX) == HIGH) {// IT MEANS that the MPU is on
-    float Y,P,R
-    mpu.checkInterrupt(Y,P,R);
-    for (static unsigned long SpamTimer; (unsigned long)(millis() - SpamTimer) >= 1000; SpamTimer = millis()) { //after a second i set the cube face
-      char faceToSend = getCubeFace(&Y, &P, &R);
+void checkUpdateFromMPU() {
+  if (digitalRead(TX) == HIGH) {  // IT MEANS that the myMpu is on
+    float Y, P, R;
+    myMpu.checkInterrupt(&Y, &P, &R);
+    for (static unsigned long SpamTimer; (unsigned long)(millis() - SpamTimer) >= 1000; SpamTimer = millis()) {  //after a second i set the cube face
+      faceToSend = getCubeFace(&Y, &P, &R);
       digitalWrite(TX, LOW);
       oled.print(String(faceToSend));
       if (faceToSend == 'N') {
-        digitalWrite(TX, LOW);
         while (1) {
           //Lampeggia led rosso =====================
         }
@@ -149,74 +148,68 @@ bool connectToTheServer() {
   }
 }
 
-
-//====================================================================
-void setup() {
-  Wire.begin(2, 0);
-  Wire.setClock(400000);
-  delay(100);
+void setPinMode() {
   pinMode(RX, FUNCTION_3);
   pinMode(TX, FUNCTION_3);
   pinMode(RX, INPUT);
   pinMode(TX, OUTPUT);
-  digitalWrite(TX, LOW);
-  oled.initialize();
-  oled.print("searching WiFi...");
-  simpleOTA.begin(512,"http://192.168.1.12:9001","APY_TOKEN");//it includes WifiManager
-  connectToTheServer();
-  delay(1000);
-  oled.print("Connection with mpu");
-  digitalWrite(TX, HIGH);
-	pcf8574.pinMode(P1, OUTPUT);
+  pcf8574.pinMode(P1, OUTPUT);
   pcf8574.pinMode(P2, OUTPUT);
   pcf8574.pinMode(P3, OUTPUT);
   pcf8574.pinMode(P4, OUTPUT);
   pcf8574.pinMode(P5, OUTPUT);
   pcf8574.pinMode(P6, OUTPUT);
   pcf8574.pinMode(P7, OUTPUT);
+}
+
+void checkMessage(String serverMessage) {
+  if (serverMessage == "OK\0") {  //the other cube recived the face
+    dataIsSent = true;
+  } else if (serverMessage == "busy\0") { //server has no more place to handle this client, try later
+    secondToWaitBeforeSendingData = 40;
+  } else if (serverMessage == "?\0") {  //Respond to server ping
+    client.print("!\0");
+  } else if (serverMessage[0] >= 'A' && serverMessage[0] <= 'F') {  //notify the reception
+    client.print("!\0");
+    // ADD FUNCTION TO LUIGHT THE LED
+  }
+}
+
+
+//====================================================================
+void setup() {
+  Wire.begin(2, 0);
+  Wire.setClock(400000);
+  delay(100);
+  setPinMode();
+  oled.begin();
+  oled.print("searching WiFi...");
+  simpleOTA->begin(512, "http://192.168.1.4:9001", "APY_TOKEN");
+  connectToTheServer();
   delay(1000);
-  MPU6050Connect();
+  oled.print("Connection with myMpu");
+  digitalWrite(TX, HIGH);
+  delay(1000);
+  myMpu.begin(-3478, -129, 1808, 79, 13, 50);
   oled.print("Setup Complete...");
 }
 
 // ================================================================
 // ===                         Loop                             ===
 // ================================================================
-String codePassed = "";
+
 void loop() {
   simpleOTA->checkUpdates(10);
   checkUpdateFromMPU();
-  if (digitalRead(TX) == HIGH) {
-    if (mpuInterrupt) {  // wait for MPU interrupt or extra packet(s) available
-      updateFromMPU();
-      mpuLib.getYPR();
-    }
-  }
   if (faceIsSetted && !dataIsSent) {
     sendFace();
   }
-  while (client.available()) {  // data recived from the server/other cube (passed through the server);
-    codePassed += static_cast<char>(client.read());
-  }
-  if (codePassed != "") {        // DA modificare e accendere la facciata ritornata
-    if (codePassed == "OK\0") {  //the other cube recived the face
-      dataIsSent = true;
-      oled.print("cube Recived face");
-      delay(3000);
-    } else if (codePassed == "busy\0") {  //server is busy
-      oled.print("busy!");
-      secondToWaitBeforeSendingData = 40;
-      delay(3000);
-    } else if (codePassed[0] >= 'A' && codePassed[0] <= 'F') {
-      client.print("!\0");  //notify back
-      oled.print("notifico la ricezione");
-      delay(1000);
-    } else if ("?\0") {     //ping from the server
-      client.print("!\0");  //notify back
-      delay(1000);
+  if (client.available()) {
+    String serverMessage = "";
+    while (client.available()) {  // data recived from the server/other cube (passed through the server);
+      serverMessage += static_cast<char>(client.read());
     }
-    oled.print(codePassed);
-    codePassed = "";
+    checkMessage(serverMessage);
   }
   checkConnection();
 }

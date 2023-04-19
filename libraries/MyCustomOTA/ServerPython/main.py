@@ -2,12 +2,13 @@ import hashlib
 import os
 import sys
 import json
-from flask import Flask, send_file, json, request
+from datetime import date
+from flask import Flask, send_file, jsonify, request, render_template	
 
-f = open(os.path.join(sys.path[0], "device.json"))
+f = open(os.path.join(sys.path[0], "device.json"),"r")
 API_TOKEN_LIST = json.load(f)
 f.close()
-app = Flask(__name__)
+app = Flask(__name__,template_folder='template')
 
 # ================================================
 
@@ -16,18 +17,17 @@ def api_update_prova(api_key):
     print(request.headers['X-Esp8266-Version'])
     if api_key in API_TOKEN_LIST:
         try:
-            return send_file(API_TOKEN_LIST[api_key][0]['FilePath'])
+            return send_file(os.path.join(sys.path[0],"firmware",api_key,API_TOKEN_LIST[api_key]['fileName']))
         except Exception as e:
                 return str(e)
     
 
 def version(api_key):
-    with open(API_TOKEN_LIST[api_key][0]['FilePath'], "rb") as file_to_check:
+    with open(os.path.join(sys.path[0],"firmware",api_key,API_TOKEN_LIST[api_key]['fileName']), "rb") as file_to_check:
         data = file_to_check.read()
         md5_returned = hashlib.md5(data).hexdigest()
-        #print('md5_checksum is', md5_returned)
     value = {
-        "version": API_TOKEN_LIST[api_key][0]['version'],
+        "version": API_TOKEN_LIST[api_key]['version'],
         "md5Checksum": md5_returned
     }
     return json.dumps(value)
@@ -37,6 +37,38 @@ def version(api_key):
 def api_version(api_key):
     if api_key in API_TOKEN_LIST:
         return version(api_key)
+
+
+@app.route('/upload')
+def upload_file():
+   return render_template('upload.html')
+
+
+@app.route('/uploader', methods = ['GET', 'POST'])
+def uploader_file():
+   if request.method == 'POST':
+        today = date.today()
+        file = request.files['file']
+        if request.form.get('token') in API_TOKEN_LIST:
+            API_TOKEN_LIST[request.form.get('token')]['version'] = request.form.get('version')
+            API_TOKEN_LIST[request.form.get('token')]['buildDate'] = today.strftime("%d/%m/%Y")
+            API_TOKEN_LIST[request.form.get('token')]['fileName'] = file.filename
+        else:
+            os.makedirs(os.path.join(sys.path[0],"firmware",request.form.get('token')))
+            newJson = {request.form.get('token') : {
+                    "companyName": "LucaLab",
+                    "version": request.form.get('version'),
+                    "buildDate": today.strftime("%d/%m/%Y"),
+                    "fileName": file.filename
+                    }
+                }
+            API_TOKEN_LIST.update(newJson)
+
+        file.save('firmware\\'+request.form.get('token')+'\\'+file.filename)
+        f = open(os.path.join(sys.path[0], "device.json"),"w")
+        json.dump(API_TOKEN_LIST,f,indent=4)
+        f.close
+        return 'json updated'
 
 
 @app.route('/')
@@ -50,4 +82,4 @@ def favicon():
 
 
 if __name__ == '__main__':
-    app.run(host='192.168.1.4', port=9001, debug=True)
+    app.run(host='192.168.1.16', port=9001, debug=True)
