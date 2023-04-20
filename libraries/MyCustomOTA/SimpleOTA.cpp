@@ -21,7 +21,7 @@ void SimpleOTA::begin(int EEPROMSize,const char * base_url, const char * API_KEY
  * called from the main thread
  */
 void SimpleOTA::checkUpdates(unsigned long seconds) {
-    if (millis() - t1 >= seconds) {
+    if (millis() - t1 >= seconds * 1000) {
       t1 = millis();
       if(network->isConnected()) {
         this->serverFirmwareCheck();
