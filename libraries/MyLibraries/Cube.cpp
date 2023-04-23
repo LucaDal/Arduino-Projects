@@ -46,7 +46,7 @@ bool Cube::updateServer() {
     if (!client.connect(host, port)) {  //se impossibile connettermi esco
       return false;
     } else {
-      if (client.printf("?%s:%s&%c", THIS_CUBE_CODE, RELATED_CUBE_CODE, faceToSend) != 0) {
+      if (client.printf("%s:%s&%c", THIS_CUBE_CODE, RELATED_CUBE_CODE, faceToSend) != 0) {
         return true;
       } else {
         return false;
@@ -91,7 +91,7 @@ false otherwise
 */
 bool Cube::connectToTheServer() {
   if (client.connect(host, port)) {
-    client.printf("?%s:%s", THIS_CUBE_CODE, RELATED_CUBE_CODE);
+    client.printf("%s:%s", THIS_CUBE_CODE, RELATED_CUBE_CODE);
     return true;
   }
   return false;
@@ -107,6 +107,7 @@ void Cube::checkUpdateFromMPU() {
       digitalWrite(TX, LOW);
       if (faceToSend == 'N') {
         while (1) {
+          delay(100);
           //Lampeggia led rosso =====================
         }
       }
@@ -149,7 +150,12 @@ void Cube::checkMessage(String serverMessage) {
     client.print("!\0");
   } else if (serverMessage[0] >= 'A' && serverMessage[0] <= 'F') {  //notify the reception
     client.print("!\0");
-    // ADD FUNCTION TO LUIGHT THE LED
+    if(serverMessage[0] == 'A') pcf8574.digitalWrite(P1, HIGH);
+    if(serverMessage[0] == 'B') pcf8574.digitalWrite(P2, HIGH);
+    if(serverMessage[0] == 'C') pcf8574.digitalWrite(P3, HIGH);
+    if(serverMessage[0] == 'D') pcf8574.digitalWrite(P4, HIGH);
+    if(serverMessage[0] == 'E') pcf8574.digitalWrite(P5, HIGH);
+    if(serverMessage[0] == 'F') pcf8574.digitalWrite(P6, HIGH);
   }
 }
 
