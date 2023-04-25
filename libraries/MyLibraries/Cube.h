@@ -4,6 +4,7 @@
 #include "PCF8574.h"
 #include "MyMPU6050.h"
 #include <ESP8266HTTPClient.h>
+
 #define RX 3
 #define TX 1
 #define TIME_DELAY_TO_RESEND_FACE 300000  //5 minuti
@@ -11,7 +12,12 @@
 
 class Cube{
     private:
+        const char * THIS_CUBE_CODE;
+        const char * RELATED_CUBE_CODE;
+        WiFiClient client;
         char faceToSend;
+        char oldFace = ' ';
+        uint8_t contFaceSimilar = 0;
         size_t contToSendData = 0;
         size_t secondToWaitBeforeSendingData = 0;  //at startup
         bool dataIsSent = false;
@@ -20,11 +26,7 @@ class Cube{
         //==============SERVER INFO=====================
         const char *host = "lucadalessandro.hopto.org";
         const uint16_t port = 50000;
-        //====================================================================
 
-        const char * THIS_CUBE_CODE;
-        const char * RELATED_CUBE_CODE;
-        WiFiClient client;
         bool updateServer();
         void sendFace();
         bool connectToTheServer();

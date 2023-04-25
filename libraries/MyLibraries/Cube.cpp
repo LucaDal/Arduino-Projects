@@ -13,7 +13,6 @@ return the face up of the cube and it will update the server if face is stabiliz
 it will try 10 times to communicate with delay of 30 seconds,
 if the face has arrived to the other cube then it will stop the communication
 */
-
 char getCubeFace(float *Y, float *P, float *R) {
   char lastFace = 'A';
   if ((*R > -40 && *R < 40) && (*P < 40 && *P > -40)) {
@@ -34,7 +33,6 @@ char getCubeFace(float *Y, float *P, float *R) {
   return lastFace;
 }
 
-//====================================================================
 /*
 This function will send to the server the face updated,
 if it is connected ->  it will send only the face
@@ -60,8 +58,6 @@ bool Cube::updateServer() {
   return false;
 }
 
-//====================================================================
-
 void Cube::sendFace() {
   for (static unsigned long SpamTimer; (unsigned long)(millis() - SpamTimer) >= 1000; SpamTimer = millis()) {
     contToSendData++;
@@ -83,7 +79,6 @@ void Cube::sendFace() {
   }
 }
 
-
 /*
 will connect to the server sending the cube info (without the face to send),
 if it connectes will return true;
@@ -97,21 +92,37 @@ bool Cube::connectToTheServer() {
   return false;
 }
 
+void error(){
+  pcf8574.digitalWrite(P2, HIGH);
+  delay(1000);
+  pcf8574.digitalWrite(P2, LOW);
+  delay(1000);
+}
 
 void Cube::checkUpdateFromMPU() {
-  if (digitalRead(TX) == HIGH) {  // IT MEANS that the myMpu is on
+  if(!faceIsSetted){
     float Y, P, R;
-    myMpu.checkInterrupt(&Y, &P, &R);
-    for (static unsigned long SpamTimer; (unsigned long)(millis() - SpamTimer) >= 1000; SpamTimer = millis()) {  //after a second i set the cube face
-      faceToSend = getCubeFace(&Y, &P, &R);
-      digitalWrite(TX, LOW);
-      if (faceToSend == 'N') {
-        while (1) {
-          delay(100);
-          //Lampeggia led rosso =====================
+    if (myMpu.checkInterrupt(&Y, &P, &R)){
+      static long QTimer = millis();
+      if ((long)( millis() - QTimer ) >= 500) { 
+        QTimer = millis();
+        faceToSend = getCubeFace(&Y, &P, &R);
+        if (faceToSend != oldFace) {
+          oldFace = faceToSend;
+          contFaceSimilar = 0;
+        } else{
+          contFaceSimilar ++;
+        }
+        if(contFaceSimilar > 5){
+          if (faceToSend == 'N') {
+          while (1) {
+            error();
+          }
+        }
+          myMpu.stopInterrupt();
+          faceIsSetted = true;
         }
       }
-      faceIsSetted = true;
     }
   }
 }
@@ -124,22 +135,25 @@ void Cube::checkConnection() {
   }
 }
 
-
 void setPinMode() {
   pinMode(RX, FUNCTION_3);
-  pinMode(TX, FUNCTION_3);
   pinMode(RX, INPUT);
-  pinMode(TX, OUTPUT);
-  pcf8574.pinMode(P1, OUTPUT);
+  //pinMode(TX, FUNCTION_3);
+  //pinMode(TX, OUTPUT);
+  //digitalWrite(TX, HIGH);
   pcf8574.pinMode(P2, OUTPUT);
   pcf8574.pinMode(P3, OUTPUT);
   pcf8574.pinMode(P4, OUTPUT);
   pcf8574.pinMode(P5, OUTPUT);
   pcf8574.pinMode(P6, OUTPUT);
   pcf8574.pinMode(P7, OUTPUT);
-  digitalWrite(TX, HIGH);
-}
-
+  pcf8574.digitalWrite(P2, LOW);
+  pcf8574.digitalWrite(P3, LOW);
+  pcf8574.digitalWrite(P4, LOW);
+  pcf8574.digitalWrite(P5, LOW);
+  pcf8574.digitalWrite(P6, LOW);
+  pcf8574.digitalWrite(P7, LOW);
+  }
 
 void Cube::checkMessage(String serverMessage) {
   if (serverMessage == "OK\0") {  //the other cube recived the face
@@ -150,27 +164,25 @@ void Cube::checkMessage(String serverMessage) {
     client.print("!\0");
   } else if (serverMessage[0] >= 'A' && serverMessage[0] <= 'F') {  //notify the reception
     client.print("!\0");
-    if(serverMessage[0] == 'A') pcf8574.digitalWrite(P1, HIGH);
-    if(serverMessage[0] == 'B') pcf8574.digitalWrite(P2, HIGH);
-    if(serverMessage[0] == 'C') pcf8574.digitalWrite(P3, HIGH);
-    if(serverMessage[0] == 'D') pcf8574.digitalWrite(P4, HIGH);
-    if(serverMessage[0] == 'E') pcf8574.digitalWrite(P5, HIGH);
-    if(serverMessage[0] == 'F') pcf8574.digitalWrite(P6, HIGH);
+    if(serverMessage[0] == 'A') {pcf8574.digitalWrite(P2, HIGH);}
+    if(serverMessage[0] == 'B') {pcf8574.digitalWrite(P3, HIGH);}
+    if(serverMessage[0] == 'C') {pcf8574.digitalWrite(P4, HIGH);}
+    if(serverMessage[0] == 'D') {pcf8574.digitalWrite(P5, HIGH);}
+    if(serverMessage[0] == 'E') {pcf8574.digitalWrite(P6, HIGH);}
+    if(serverMessage[0] == 'F') {pcf8574.digitalWrite(P7, HIGH);}
   }
 }
-
 
 void Cube::begin(int XA, int YA, int ZA, int XG, int YG,int ZG) {
   Wire.begin(2, 0);
   Wire.setClock(400000);
-  delay(100);
   setPinMode();
-  connectToTheServer();
   myMpu.begin(XA, YA, ZA, XG, YG, ZG);
+  connectToTheServer();
 }
 
-
 void Cube::start() {
+  checkConnection();
   checkUpdateFromMPU();
   if (faceIsSetted && !dataIsSent) {
     sendFace();
@@ -182,5 +194,4 @@ void Cube::start() {
     }
     checkMessage(serverMessage);
   }
-  checkConnection();
 }

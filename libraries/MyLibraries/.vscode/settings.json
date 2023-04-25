@@ -38,5 +38,6 @@
     "*.embeddedhtml": "html",
     "string_view": "cpp",
     "string": "cpp"
-  }
+  },
+  "C_Cpp_Runner.showCompilationTime": false
 }
