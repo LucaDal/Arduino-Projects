@@ -119,7 +119,7 @@ void Cube::checkUpdateFromMPU() {
             error();
           }
         }
-          myMpu.stopInterrupt();
+          myMpu.setToSleep();
           faceIsSetted = true;
         }
       }

@@ -14,7 +14,7 @@ class MyMPU6050{
         MyMPU6050(int interruptPin);
         void begin(int XA, int YA, int ZA, int XG, int YG, int ZG);
         bool checkInterrupt(float *Y, float *P, float *R);
-        void stopInterrupt();
+        void setToSleep();
 };
 
 #endif

@@ -27,7 +27,7 @@ int Network::getFreeEEPROMAddress(){
 Firmware Network::checkVersion(String apy_key) {
 
   Firmware firmware;
-  firmware.version = -1;
+  firmware.version = "-1";
 
   if ((WiFi.status() == WL_CONNECTED)) {
 

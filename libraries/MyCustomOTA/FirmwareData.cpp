@@ -1,4 +1,5 @@
 #include "FirmwareData.h"
+
 FirmwareData::FirmwareData(int EEPROMAddress) {
   this->EEPROMAddress = EEPROMAddress;
   this->loadVersion();

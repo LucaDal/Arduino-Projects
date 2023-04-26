@@ -127,8 +127,19 @@ void getYPR(float *Y, float *P, float *R) {  // Best version I have made so far
   }
 }
 
-void MyMPU6050::stopInterrupt(){
+/*
+  the register 6b that manage the power consumption has this form:
+  bit7         bit6    bit5   bit4    bit3      bit2   bit1   bit0
+  DEV_RESET   SLEEP    CYCLE    -   TEMP_DIS   |       CLK_SEL    | 
+  For more references check this link:
+  https://invensense.tdk.com/wp-content/uploads/2015/02/MPU-6000-Register-Map1.pdf
+*/
+void MyMPU6050::setToSleep(){
   detachInterrupt(interruptPin);
+  Wire.beginTransmission(0b1101000);
+  Wire.write(0x6B);
+  Wire.write(0b01001111); 
+  Wire.endTransmission();
 }
 
 bool MyMPU6050::checkInterrupt(float *Y, float *P, float *R){

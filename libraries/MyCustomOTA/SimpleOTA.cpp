@@ -64,6 +64,7 @@ void SimpleOTA::serverFirmwareCheck() {
     #ifdef DEBUG
       Serial.println("Server Not Responding");
     #endif
+    return;
   } else {
     if (version->hasNewUpdate()) {
       #ifdef DEBUG
