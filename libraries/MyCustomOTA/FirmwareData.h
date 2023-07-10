@@ -11,10 +11,10 @@ private:
   String oldFirmwareVersion = "";
   void loadVersion();
   bool hasNewFirmware;
-  int EEPROMAddress;
+  int EEPROMSize;
 
 public:
-  FirmwareData(int EEPROMAddress);
+  FirmwareData(int EEPROMSize);
   void saveVersion(String version);
   void setNewFirmware(Firmware new_firmware_version);
   bool hasNewUpdate();

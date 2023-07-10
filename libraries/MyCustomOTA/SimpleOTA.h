@@ -5,7 +5,6 @@
 #include "FirmwareData.h"
 #include "Network.h"
 
-
 //to activate serial.Print()  
 //#define DEBUG 
 
@@ -18,8 +17,8 @@ private:
   unsigned long t1;
   const char * API_KEY;
 
-  void initVersion();
-  void initNetwork(int EEPROMSize, const char * base_url);
+  void initVersion(int EEPROMSize);
+  void initNetwork(const char * base_url);
   void serverFirmwareCheck();
   void startDownload();
   //void updateFirmware();

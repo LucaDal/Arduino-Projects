@@ -33,7 +33,6 @@
      </header>
 
     <?php
-
       if ($_SESSION['logged_in'] != true){
       echo "<div class='page'><h1>Area riservata, accesso negato.</h1></div>";
         exit;

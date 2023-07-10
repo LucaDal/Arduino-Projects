@@ -29,7 +29,6 @@ class Cube{
 
         bool updateServer();
         void sendFace();
-        bool connectToTheServer();
         void checkUpdateFromMPU();
         void checkConnection();
         void checkMessage(String serverMessage);
@@ -37,6 +36,7 @@ class Cube{
         Cube(const char *THIS_CUBE_CODE,const char *RELATED_CUBE_CODE);
         void begin(int XA, int YA, int ZA, int XG, int YG,int ZG);
         void start();
+        bool connectToTheServer();
 };
 
 #endif

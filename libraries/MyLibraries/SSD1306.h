@@ -19,7 +19,8 @@ class SSD1306{
         void print(String text);
         /*Delete everything from the oled*/
         void clear(void);
+        /*Insert content on text until clear is setted True*/
+        void printf(String text, int sizeText, int x, int y, bool clear = false);
 };
-
 
 #endif

@@ -1,32 +1,25 @@
 #include <Wire.h>
-
-#include <ESP8266HTTPClient.h>
-HTTPClient http;
-WiFiClient client;
-
+#include <ESP8266WiFi.h>
 #include "DFRobot_SHT20.h"
-DFRobot_SHT20 sht20;
-
-#include <EEPROM.h>
-
+#include <SimpleOTA.h>
 #include "DHT.h"
-#define DHTTYPE DHT11
-#define DHTPIN 3
-DHT dht(DHTPIN, DHTTYPE);
-
 #include <SSD1306.h>
-SSD1306 oled(128,32);
+#include "RTClib.h"
+#include <ESP8266HTTPClient.h>
+#include <NTPClient.h>
+#include <WiFiUdp.h>
 
 #define MOTOR 1
-
-
-#include "RTClib.h"
-char daysOfTheWeek[7][12] = { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
+#define DHTTYPE DHT11
+#define DHTPIN 3
+HTTPClient http;
+WiFiClient client;
+DFRobot_SHT20 sht20;
 RTC_DS1307 rtc;
-
-#include <ESP8266WiFi.h>
-const char *ssid = "Vodafone-A82448034";  //4
-const char *password = "2piedinidimoira";
+WiFiUDP ntpUDP;
+SSD1306 oled(128, 32);
+SimpleOTA *simpleOTA = new SimpleOTA();
+DHT dht(DHTPIN, DHTTYPE);
 
 int umid_to_water = 0;
 int ml_to_give = 0;
@@ -40,7 +33,6 @@ int minToSetFleg;
 //irrigazione dati
 int oraFineIrrigazione = 0;
 const int intervallo = 10;
-
 
 int hourInt;
 int minInt;
@@ -65,37 +57,21 @@ bool motorState = false;
 bool dataIsRead = false;
 
 void setup() {
-  // inizializzo i sensori:
-  Wire.begin(2, 0);//sda - scl
-  WiFi.begin(ssid, password);
+  Wire.begin(2, 0);  //sda - scl
+  simpleOTA->begin(512, "http://lucadalessandro.hopto.org:50001", "WATER_PLANT");
+  simpleOTA->checkUpdates(0);  //check instant the update
+
   oled.begin();
   sht20.initSHT20();
   delay(100);
   sht20.checkSHT20();
-  EEPROM.begin(512);
-
-  //GPIO 1 (TX) swap the pin to a GPIO.
   pinMode(MOTOR, FUNCTION_3);
-  //GPIO 3 (RX) swap the pin to a GPIO.
   pinMode(DHTPIN, FUNCTION_3);
-  //GPIO 1 (TX) swap the pin to a TX.
-  //pinMode(1, FUNCTION_0);
-  //GPIO 3 (RX) swap the pin to a RX.
-  //pinMode(3, FUNCTION_0);
   pinMode(MOTOR, OUTPUT);
   dht.begin();
 
-  int cont = 20;
-  while ((WiFi.status() != WL_CONNECTED)) {
-    oled.print("Connection...", 2, 0, 0);
-    delay(500);
-    cont--;
-    if (cont < 0) {
-      break;
-    }
-  }
   if (WiFi.status() == WL_CONNECTED) {
-    oled.print("Connected", 2, 0, 0);
+    oled.print("Connected");
     delay(1000);
     askDataFromSiteAndUpdateEEPROM();  //Leggo i parametri dal sito
   } else {
@@ -103,35 +79,49 @@ void setup() {
     readDataFromEEPROM();
     delay(2000);
   }
-
-  oled.print(String(umid_to_water), 2, 0, 0);
-  oled.print("%", 2, 34, 0);
-  oled.print(String(ml_to_give), 2, 50, 0);
-  oled.print(String(millisec_to_adjust_water), 2, 0, 16);
-  oled.print("|", 2, 55, 16);
-  oled.print(String(ora_a), 2, 63, 16);
-  oled.print("->", 1, 96, 22);
-  oled.print(String(oraFineIrrigazione), 2, 108, 16);
+  
+  
+  oled.printf(String(umid_to_water), 2, 0, 0, true);
+  oled.printf("%", 2, 34, 0);
+  oled.printf(String(ml_to_give), 2, 60, 0);
+  oled.printf(String(millisec_to_adjust_water), 2, 0, 16);
+  oled.printf("|", 2, 55, 16);
+  oled.printf(String(ora_a), 2, 63, 16);
+  oled.printf("->", 1, 96, 22);
+  oled.printf(String(oraFineIrrigazione), 2, 108, 16);
 
   //Messaggio di benvenuto----------------
   delay(3000);
-  oled.print("Welcome", 2, 0, 0);
-  display.clearDisplay();
+  oled.print("Welcome");
   delay(1000);
   if (!rtc.begin()) {
-    oled.print("RTC error", 2, 0, 0);
+    oled.print("RTC error");
     delay(2000);
   } else {
+    if (WiFi.status() == WL_CONNECTED){
+      updateRTC();
+    }
     DateTime now = rtc.now();
     hourInt = now.hour();
     minInt = now.minute();
-    oled.print(String(hourInt), 2, 0, 0);
-    oled.print(":", 2, 25, 0);
-    oled.print(String(minInt), 2, 55, 0);
+    oled.printf(String(hourInt), 2, 0, 0, true);
+    oled.printf(":", 2, 25, 0);
+    oled.printf(String(minInt), 2, 55, 0);
     delay(2000);
     next_update = minInt;
   }
 }
+
+
+void updateRTC() {
+  NTPClient timeClient(ntpUDP, "europe.pool.ntp.org", 7200);
+  timeClient.begin();
+  delay(100);
+  if (timeClient.update()) {
+    rtc.adjust(DateTime(2023, 7, 10, timeClient.getHours(), timeClient.getMinutes(), timeClient.getSeconds()));
+  }
+}
+
 
 /*
 will read the data from the db and it will update the interval time to water
@@ -155,7 +145,7 @@ void sendDataToSite(String ora, String minn, String temp_aria, String temp_terre
 }
 
 
-int getValureFromEEPROM(int *index) {
+int getValueFromEEPROM(int *index) {
   char temp[] = "      ";
   for (int i = 0; i < 5; i++) {
     temp[i] = EEPROM.read(++(*index));
@@ -169,14 +159,16 @@ void readDataFromEEPROM(void) {
   Serial.printf("leggo da EEPROM\n");
   int index = 0;
   umid_to_water = EEPROM.read(index);
-  ml_to_give = getValureFromEEPROM(&index);
-  millisec_to_adjust_water = getValureFromEEPROM(&index);
+  ml_to_give = getValueFromEEPROM(&index);
+  millisec_to_adjust_water = getValueFromEEPROM(&index);
   ora_a = EEPROM.read(++index);
   min_a = EEPROM.read(++index);
   updateIrrigationData();
 }
 
-
+/*
+max value is 99999 because of the settings on the site
+*/
 void writeStringToEEPROM(int *index, String str, bool *flag) {
 
   for (unsigned int i = 0; i < 5 - str.length(); i++) {  //max value is 99999
@@ -199,7 +191,6 @@ void updateEEPROM(int *umid, int *ml, int *sec, int *oraa, int *mina) {
   int index = 0;
   if (*umid != EEPROM.read(index)) {
     EEPROM.write(index, *umid);
-    Serial.print("scrivo :umid\n");
     flag = true;
   }
   writeStringToEEPROM(&index, (String)*ml, &flag);
@@ -213,13 +204,13 @@ void updateEEPROM(int *umid, int *ml, int *sec, int *oraa, int *mina) {
     flag = true;
   }
   if (flag) {
-    //Serial.print("Scrivo su eprom...\n");
     EEPROM.commit();
   }
 }
 
-
-String getValue(String data, char separator, int index) {
+//this function is already declared in FirmwareData.cpp so i need to call in
+//another way -> to update
+String getValue_(String data, char separator, int index) {
   int found = 0;
   int strIndex[] = { 0, -1 };
   int maxIndex = data.length() - 1;
@@ -237,18 +228,16 @@ String getValue(String data, char separator, int index) {
 
 void askDataFromSiteAndUpdateEEPROM(void) {
   if ((WiFi.status() == WL_CONNECTED)) {
-    //Serial.print("[HTTPS] begin...\n");
     if (http.begin(client, "http://dalessandroluca.altervista.org/Projects/requestFromPlant.php?device_name=oJd4K")) {
-      //Serial.print("[HTTP] GET...\n");
       int httpCode = http.GET();
       if (httpCode > 0) {
         if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
           String payload = http.getString();
-          umid_to_water = getValue(payload, ';', 0).toInt();
-          ml_to_give = getValue(payload, ';', 1).toInt();
-          millisec_to_adjust_water = getValue(payload, ';', 2).toInt();
-          ora_a = getValue(payload, ';', 3).toInt();
-          min_a = getValue(payload, ';', 4).toInt();
+          umid_to_water = getValue_(payload, ';', 0).toInt();
+          ml_to_give = getValue_(payload, ';', 1).toInt();
+          millisec_to_adjust_water = getValue_(payload, ';', 2).toInt();
+          ora_a = getValue_(payload, ';', 3).toInt();
+          min_a = getValue_(payload, ';', 4).toInt();
           //Serial.printf("letto: umid: %i,ml: %i,sec: %i,oraa: %i,mina: %i\n",umid,ml,sec,oraa,mina );
           updateEEPROM(&umid_to_water, &ml_to_give, &millisec_to_adjust_water, &ora_a, &min_a);
           updateIrrigationData();
@@ -283,6 +272,7 @@ void annaffia(unsigned long *currentMillis) {
 }
 
 void loop() {
+  simpleOTA->checkUpdates(172800);  //ogni 48 ore
   unsigned long currentMillis = millis();
 
   //READING DATA---------------------------------------------------------------
@@ -335,17 +325,16 @@ void loop() {
   if (currentMillis - previousMillisDisplay >= intervalDisplay) {
     previousMillisDisplay = currentMillis;
     if (!displayState) {
-      oled.print(HA, 2, 0, 0);
-      oled.print("%", 2, 34, 0);
-      oled.print(TA, 2, 64, 0);
-      oled.print((String)HT, 2, 0, 16);
-      oled.print("%", 2, 34, 16);
-      oled.print(TT, 2, 64, 16);
+      oled.printf(HA, 2, 0, 0);
+      oled.printf("%", 2, 34, 0);
+      oled.printf(TA, 2, 64, 0);
+      oled.printf((String)HT, 2, 0, 16);
+      oled.printf("%", 2, 34, 16);
+      oled.printf(TT, 2, 64, 16);
       displayState = true;
       intervalDisplay = 2000;  //time data view
     } else {
       oled.clear();
-      display.display();
       intervalDisplay = 6000;  //time black screen
       displayState = false;
     }
@@ -364,7 +353,8 @@ void loop() {
       oled.print("asking data", 2, 0, 0);
       askDataFromSiteAndUpdateEEPROM();
     }
-    oled.print("Sending data", 2, 0, 0);
+    oled.printf("Sending",2, 0, 0, true);
+    oled.printf("data",2, 0, 16);
     sendDataToSite(String(hourInt), String(minInt), TA, TT, HA, String(HT));
   }
 }

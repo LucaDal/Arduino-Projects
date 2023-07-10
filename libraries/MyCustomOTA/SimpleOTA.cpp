@@ -11,8 +11,9 @@ SimpleOTA::SimpleOTA() {
 }
 
 void SimpleOTA::begin(int EEPROMSize,const char * base_url, const char * API_KEY) {
-  this->initNetwork(EEPROMSize, base_url);
-  this->initVersion();
+
+  this->initNetwork(base_url);
+  this->initVersion(EEPROMSize);
   this->API_KEY = API_KEY;
 }
 
@@ -29,22 +30,22 @@ void SimpleOTA::checkUpdates(unsigned long seconds) {
     }
 }
 
-void SimpleOTA::initVersion() {
+void SimpleOTA::initVersion(int EEPROMSize) {
   #ifdef DEBUG
     Serial.println("initVersion");
   #endif
-  version = new FirmwareData(network->getFreeEEPROMAddress());
+  version = new FirmwareData(EEPROMSize);
   #ifdef DEBUG
     Serial.printf("Current Version: %s\n",version->getNewFirmwareVersion().c_str());
   #endif
 }
 
-void SimpleOTA::initNetwork(int EEPROMSize, const char * base_url) {
+void SimpleOTA::initNetwork(const char * base_url) {
   #ifdef DEBUG
     Serial.println("initNetwork");
   #endif
   network = new Network(base_url); 
-  network->WiFiBegin(EEPROMSize);
+  network->WiFiBegin();
 }
 
 void SimpleOTA::startDownload() {
@@ -57,6 +58,7 @@ void SimpleOTA::startDownload() {
     ESP.restart();
   }
 }
+
 
 void SimpleOTA::serverFirmwareCheck() {
   version->setNewFirmware(network->checkVersion(API_KEY));

@@ -4,13 +4,12 @@ Network::Network(const char * base_url){
   this->BASE_URL = base_url;
 }
 
-void Network::WiFiBegin(int EEPROMSize) {
-  wifi = new MyWifiManager(EEPROMSize);
-  #ifdef DEBUG
-    Serial.println(wifi->connect());
-  #else
-    wifi->connect();
-  #endif
+void Network::WiFiBegin() {
+  //This is the name of the network where to insert credential if not loaded
+  wifiManager.setConfigPortalTimeout(120);
+  wifiManager.autoConnect("Domotica");
+  WiFi.setAutoReconnect(true);
+  WiFi.persistent(true);
 }
 
 bool Network::isConnected(){
@@ -20,16 +19,12 @@ bool Network::isConnected(){
   return false;
 }
 
-int Network::getFreeEEPROMAddress(){
-  return wifi->getIndexEEPROM();
-}
-
 Firmware Network::checkVersion(String apy_key) {
 
   Firmware firmware;
   firmware.version = "-1";
 
-  if ((WiFi.status() == WL_CONNECTED)) {
+  if (isConnected()) {
 
     String targetURL = BASE_URL;
     targetURL += "/api/get/version/" + apy_key;
@@ -72,4 +67,3 @@ bool Network::fileDownload(String apy_key, String md5Checksum, String currentVer
   }
   return false;
 }
-

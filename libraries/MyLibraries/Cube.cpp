@@ -135,7 +135,17 @@ void Cube::checkConnection() {
   }
 }
 
-void setPinMode() {
+void lightsOff(){
+  pcf8574.digitalWrite(P2, LOW);
+  pcf8574.digitalWrite(P3, LOW);
+  pcf8574.digitalWrite(P4, LOW);
+  pcf8574.digitalWrite(P5, LOW);
+  pcf8574.digitalWrite(P6, LOW);
+  pcf8574.digitalWrite(P7, LOW);
+}
+
+
+void beginPinMode() {
   pinMode(RX, FUNCTION_3);
   pinMode(RX, INPUT);
   //pinMode(TX, FUNCTION_3);
@@ -147,12 +157,7 @@ void setPinMode() {
   pcf8574.pinMode(P5, OUTPUT);
   pcf8574.pinMode(P6, OUTPUT);
   pcf8574.pinMode(P7, OUTPUT);
-  pcf8574.digitalWrite(P2, LOW);
-  pcf8574.digitalWrite(P3, LOW);
-  pcf8574.digitalWrite(P4, LOW);
-  pcf8574.digitalWrite(P5, LOW);
-  pcf8574.digitalWrite(P6, LOW);
-  pcf8574.digitalWrite(P7, LOW);
+  lightsOff();
   }
 
 void Cube::checkMessage(String serverMessage) {
@@ -164,21 +169,21 @@ void Cube::checkMessage(String serverMessage) {
     client.print("!\0");
   } else if (serverMessage[0] >= 'A' && serverMessage[0] <= 'F') {  //notify the reception
     client.print("!\0");
-    if(serverMessage[0] == 'A') {pcf8574.digitalWrite(P2, HIGH);}
-    if(serverMessage[0] == 'B') {pcf8574.digitalWrite(P3, HIGH);}
-    if(serverMessage[0] == 'C') {pcf8574.digitalWrite(P4, HIGH);}
-    if(serverMessage[0] == 'D') {pcf8574.digitalWrite(P5, HIGH);}
-    if(serverMessage[0] == 'E') {pcf8574.digitalWrite(P6, HIGH);}
-    if(serverMessage[0] == 'F') {pcf8574.digitalWrite(P7, HIGH);}
+    lightsOff();
+    if(serverMessage[0] == 'C') {pcf8574.digitalWrite(P2, HIGH);}
+    if(serverMessage[0] == 'F') {pcf8574.digitalWrite(P3, HIGH);}
+    if(serverMessage[0] == 'B') {pcf8574.digitalWrite(P4, HIGH);}
+    if(serverMessage[0] == 'E') {pcf8574.digitalWrite(P5, HIGH);}
+    if(serverMessage[0] == 'D') {pcf8574.digitalWrite(P6, HIGH);}
+    if(serverMessage[0] == 'A') {pcf8574.digitalWrite(P7, HIGH);}
   }
 }
 
 void Cube::begin(int XA, int YA, int ZA, int XG, int YG,int ZG) {
   Wire.begin(2, 0);
   Wire.setClock(400000);
-  setPinMode();
+  beginPinMode();
   myMpu.begin(XA, YA, ZA, XG, YG, ZG);
-  connectToTheServer();
 }
 
 void Cube::start() {

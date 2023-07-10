@@ -1,15 +1,19 @@
 #include "FirmwareData.h"
 
-FirmwareData::FirmwareData(int EEPROMAddress) {
-  this->EEPROMAddress = EEPROMAddress;
+FirmwareData::FirmwareData(int EEPROMSize) {
+  this->EEPROMSize = EEPROMSize;
+  EEPROM.begin(EEPROMSize);
   this->loadVersion();
   hasNewFirmware = false;
 }
 
+/*
+Version is stored in in the last two bit
+*/
 void FirmwareData::loadVersion() {
-  //EEProm Already begun in network (myWifiManager)
-  uint8_t firstValue = EEPROM.read(EEPROMAddress);
-  uint8_t SecondValue = EEPROM.read(EEPROMAddress+1);
+  
+  uint8_t firstValue = EEPROM.read(EEPROMSize-2);
+  uint8_t SecondValue = EEPROM.read(EEPROMSize-1);
   this-> newFirmware.version = String(firstValue) + '.' + String(SecondValue); ;
 }
 
@@ -34,8 +38,8 @@ void FirmwareData::saveVersion(String version) {
   #ifdef DEBUG
     Serial.printf("firstValue = %i, secondValue = %i\n",firstValue,secondValue);
   #endif
-  EEPROM.write(EEPROMAddress, firstValue);
-  EEPROM.write(EEPROMAddress+1, secondValue);
+  EEPROM.write(EEPROMSize-2, firstValue);
+  EEPROM.write(EEPROMSize-1, secondValue);
   EEPROM.commit();
 }
 
