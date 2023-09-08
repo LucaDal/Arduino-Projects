@@ -5,10 +5,11 @@
  *************************************************************/
 #define BLYNK_TEMPLATE_ID "TMPLM5LBxtv4"
 #define BLYNK_DEVICE_NAME "Cancello casa"
-#define BLYNK_AUTH_TOKEN "JtJOY20S6nQTGUT0zc8qGIRJkUfBm8ED"
+
 
 //#define BLYNK_PRINT Serial
 
+#include "secret_data.h"
 #include <arduino-timer.h>
 #include <ESP8266WiFi.h>
 #include <BlynkSimpleEsp8266.h>

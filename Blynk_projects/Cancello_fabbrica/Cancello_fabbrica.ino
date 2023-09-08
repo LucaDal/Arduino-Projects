@@ -8,12 +8,11 @@
 // See the Device Info tab, or Template settings
 #define BLYNK_TEMPLATE_ID "TMPL7ukfN7CP"
 #define BLYNK_DEVICE_NAME "Cancello fabbrica "
-#define BLYNK_AUTH_TOKEN "yRjhc_6iLCLMDNBCEWOHGtg06OSjDiUF"
 
 // Comment this out to disable prints and save space
 //#define BLYNK_PRINT Serial
 
-
+#include "secret_data.h"
 #include <ESP8266WiFi.h>
 #include <BlynkSimpleEsp8266.h>
 
