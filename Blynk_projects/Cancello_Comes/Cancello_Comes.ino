@@ -8,7 +8,6 @@
 // See the Device Info tab, or Template settings
 #define BLYNK_TEMPLATE_ID "TMPLlfY62007"
 #define BLYNK_DEVICE_NAME "Cancello"
-#define BLYNK_AUTH_TOKEN "stvVt9r2rL0dfKTRxIGeqB6uTOHOeJ4j"
 // Comment this out to disable prints and save space
 //#define BLYNK_PRINT Serial
 
