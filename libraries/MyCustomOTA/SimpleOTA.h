@@ -18,14 +18,14 @@ private:
   const char * API_KEY;
 
   void initVersion(int EEPROMSize);
-  void initNetwork(const char * base_url);
+  void initNetwork(const char * base_url, const char * fingerPrint);
   void serverFirmwareCheck();
   void startDownload();
   //void updateFirmware();
 
 public:
   SimpleOTA();
-  void begin(int EEPROMSize,const char * base_url, const char * API_KEY);
+  void begin(int EEPROMSize,const char * base_url, const char * fingerPrint, const char * API_KEY);
   void checkUpdates(unsigned long seconds);
 };
 

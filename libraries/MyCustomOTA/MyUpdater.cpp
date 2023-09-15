@@ -27,8 +27,8 @@ MyUpdater::MyUpdater(String md5Checksum){
     ESPhttpUpdate.setMD5sum(md5Checksum);
 }
 
-bool MyUpdater::startUpdate(HTTPClient &http, String currentFirmwareVersion){
-    t_httpUpdate_return ret = ESPhttpUpdate.update(http, currentFirmwareVersion);
+bool MyUpdater::startUpdate(HTTPClient &https, String currentFirmwareVersion){
+    t_httpUpdate_return ret = ESPhttpUpdate.update(https, currentFirmwareVersion);
     switch (ret) {
       case HTTP_UPDATE_FAILED:
         #ifdef DEBUG

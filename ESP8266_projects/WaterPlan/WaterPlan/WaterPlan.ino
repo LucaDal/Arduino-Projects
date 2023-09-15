@@ -58,6 +58,8 @@ bool dataIsRead = false;
 
 void setup() {
   Wire.begin(2, 0);  //sda - scl
+  wifiManager.setConfigPortalTimeout(120);
+  wifiManager.autoConnect("Domotica");
   simpleOTA->begin(512, "http://lucadalessandro.hopto.org:50001", "WATER_PLANT");
   simpleOTA->checkUpdates(0);  //check instant the update
 

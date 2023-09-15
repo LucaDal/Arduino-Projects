@@ -10,11 +10,12 @@ SimpleOTA::SimpleOTA() {
   instance = this;
 }
 
-void SimpleOTA::begin(int EEPROMSize,const char * base_url, const char * API_KEY) {
+void SimpleOTA::begin(int EEPROMSize,const char * base_url, const char * fingerPrint, const char * API_KEY) {
 
-  this->initNetwork(base_url);
+  this->initNetwork(base_url, fingerPrint);
   this->initVersion(EEPROMSize);
   this->API_KEY = API_KEY;
+  checkUpdates(0);
 }
 
 /**
@@ -40,11 +41,11 @@ void SimpleOTA::initVersion(int EEPROMSize) {
   #endif
 }
 
-void SimpleOTA::initNetwork(const char * base_url) {
+void SimpleOTA::initNetwork(const char * base_url, const char * fingerPrint) {
   #ifdef DEBUG
     Serial.println("initNetwork");
   #endif
-  network = new Network(base_url); 
+  network = new Network(base_url, fingerPrint); 
   network->WiFiBegin();
 }
 

@@ -8,7 +8,7 @@
 class MyUpdater{
     public:
         MyUpdater(String md5Checksum);
-        bool startUpdate(HTTPClient &http, String currentFirmwareVersion);
+        bool startUpdate(HTTPClient &https, String currentFirmwareVersion);
 };
 
 #endif
