@@ -10,25 +10,44 @@ SimpleOTA::SimpleOTA() {
   instance = this;
 }
 
-void SimpleOTA::begin(int EEPROMSize,const char * base_url, const char * fingerPrint, const char * API_KEY) {
 
-  this->initNetwork(base_url, fingerPrint);
+void SimpleOTA::init(int EEPROMSize, const char * base_url, const char * API_KEY){
   this->initVersion(EEPROMSize);
   this->API_KEY = API_KEY;
   checkUpdates(0);
 }
 
 /**
- * @brief check update every tot seconds
+ * @brief calling this function the update is checked automaticaly
+ * Firmware data will be saved to the last EEPROM address
+ */
+void SimpleOTA::begin(int EEPROMSize, const char * base_url, const char * API_KEY) {
+  this->initNetwork(base_url, NULL);
+  init(EEPROMSize,base_url,API_KEY);
+}
+
+/**
+ * @brief calling this function will automaticaly check the update.
+ * Firmware data will be saved to the last EEPROM address
+ * Fingerprint is needed to perform HTTPS request
+ */
+void SimpleOTA::begin(int EEPROMSize,const char * base_url, const char * fingerPrint, const char * API_KEY) {
+  this->initNetwork(base_url, fingerPrint);
+  init(EEPROMSize,base_url,API_KEY);
+}
+
+/**
+ * @brief return false if something goes wrong
  * called from the main thread
  */
-void SimpleOTA::checkUpdates(unsigned long seconds) {
+bool SimpleOTA::checkUpdates(unsigned long seconds) {
     if (millis() - t1 >= seconds * 1000) {
       t1 = millis();
       if(network->isConnected()) {
-        this->serverFirmwareCheck();
+        return this->serverFirmwareCheck();
       } 
     }
+    return true;
 }
 
 void SimpleOTA::initVersion(int EEPROMSize) {
@@ -49,7 +68,7 @@ void SimpleOTA::initNetwork(const char * base_url, const char * fingerPrint) {
   network->WiFiBegin();
 }
 
-void SimpleOTA::startDownload() {
+bool SimpleOTA::startDownload() {
   if(network->fileDownload(API_KEY,version->getFirmwareMD5Image(),version->getOldFirmwareVersion())){
     version->saveVersion(version->getNewFirmwareVersion());//save only if update goes fine
     #ifdef DEBUG
@@ -58,28 +77,31 @@ void SimpleOTA::startDownload() {
     delay(1000); // Wait a second and restart
     ESP.restart();
   }
+  return false;
 }
-
-
-void SimpleOTA::serverFirmwareCheck() {
+/**
+ * return false if failed, true if no update found.
+ */
+bool SimpleOTA::serverFirmwareCheck() {
   version->setNewFirmware(network->checkVersion(API_KEY));
   if (version->getNewFirmwareVersion() == "-1") {
     #ifdef DEBUG
       Serial.println("Server Not Responding");
     #endif
-    return;
+    return false;
   } else {
     if (version->hasNewUpdate()) {
       #ifdef DEBUG
         Serial.println("New Build Available!");
         Serial.println("Starting the donwload!");
       #endif
-      startDownload();
+      return startDownload();
     }else{
       #ifdef DEBUG
         Serial.println("No new version");
       #endif
     }
+    return true;
   }
 }
 

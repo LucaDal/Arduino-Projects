@@ -1,7 +1,9 @@
 #include <Wire.h>
 #include <ESP8266WiFi.h>
 #include "DFRobot_SHT20.h"
-#include <SimpleOTA.h>
+//#include <SimpleOTA.h>
+#include <WiFiManager.h>
+#include <EEPROM.h>
 #include "DHT.h"
 #include <SSD1306.h>
 #include "RTClib.h"
@@ -18,7 +20,7 @@ DFRobot_SHT20 sht20;
 RTC_DS1307 rtc;
 WiFiUDP ntpUDP;
 SSD1306 oled(128, 32);
-SimpleOTA *simpleOTA = new SimpleOTA();
+//SimpleOTA *simpleOTA = new SimpleOTA();
 DHT dht(DHTPIN, DHTTYPE);
 
 int umid_to_water = 0;
@@ -58,10 +60,11 @@ bool dataIsRead = false;
 
 void setup() {
   Wire.begin(2, 0);  //sda - scl
+  WiFiManager wifiManager;
   wifiManager.setConfigPortalTimeout(120);
   wifiManager.autoConnect("Domotica");
-  simpleOTA->begin(512, "http://lucadalessandro.hopto.org:50001", "WATER_PLANT");
-  simpleOTA->checkUpdates(0);  //check instant the update
+  //simpleOTA->begin(512, "http://lucadalessandro.hopto.org:50001", "WATER_PLANT");
+  //simpleOTA->checkUpdates(0);  //check instant the update
 
   oled.begin();
   sht20.initSHT20();
@@ -116,7 +119,7 @@ void setup() {
 
 
 void updateRTC() {
-  NTPClient timeClient(ntpUDP, "europe.pool.ntp.org", 7200);
+  NTPClient timeClient(ntpUDP, "europe.pool.ntp.org", 3600);//7200 +1 ora legale
   timeClient.begin();
   delay(100);
   if (timeClient.update()) {
@@ -274,7 +277,7 @@ void annaffia(unsigned long *currentMillis) {
 }
 
 void loop() {
-  simpleOTA->checkUpdates(172800);  //ogni 48 ore
+  //simpleOTA->checkUpdates(172800);  //ogni 48 ore
   unsigned long currentMillis = millis();
 
   //READING DATA---------------------------------------------------------------

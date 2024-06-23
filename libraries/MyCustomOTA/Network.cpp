@@ -3,6 +3,9 @@
 Network::Network(const char * base_url, const char * fingerPrint){
   this->BASE_URL = base_url;
   this->fingerPrint = fingerPrint;
+  if(fingerPrint != NULL){
+    client->setFingerprint(fingerPrint);
+  }
 }
 
 void Network::WiFiBegin() {
@@ -17,18 +20,36 @@ bool Network::isConnected(){
   return false;
 }
 
+bool Network::startConnectionWith(String server_api_address, String apy_key){
+  bool http_connected = false;
+  if (fingerPrint != NULL){
+    String targetURL = server_api_address + apy_key;
+    Serial.println(targetURL);
+    //tls connection on port 443
+    http_connected = https.begin(*client, this->BASE_URL, 443 , targetURL.c_str(), true);
+  }else{
+    WiFiClient client;
+    String httpRequestData = this->BASE_URL + server_api_address + apy_key;
+    Serial.println(httpRequestData);
+    http_connected = https.begin(client, httpRequestData);
+  }
+  return http_connected;
+}
+
+
 Firmware Network::checkVersion(String apy_key) {
 
   Firmware firmware;
   firmware.version = "-1";
+  Serial.println("check version");
+  if (isConnected()) {    
+    String server_api_address = "/ota/api/get/version/";
+    bool http_connected = startConnectionWith(server_api_address, apy_key);
 
-  if (isConnected()) {
-
-    client->setFingerprint(fingerPrint);
-    String targetURL = "/ota/api/get/version/" + apy_key;
-    const char* target = targetURL.c_str();
-
-    if(https.begin(*client, BASE_URL, 443 ,target , true)){ //tls connection on port 443
+    if(http_connected){
+        #ifdef DEBUG
+          Serial.println("connesso");
+        #endif
       int httpCode = https.GET();
       if (httpCode == HTTP_CODE_OK) {
         String payload = https.getString();
@@ -61,12 +82,14 @@ Firmware Network::checkVersion(String apy_key) {
 }
 
 bool Network::fileDownload(String apy_key, String md5Checksum, String currentVersion){
-  String httpRequestData = "";
-  httpRequestData += "/ota/api/post/update/" + apy_key;
-  if ((WiFi.status() == WL_CONNECTED)) {
+  String httpRequestData = "/ota/api/post/update/";
+  if (isConnected()) {
     MyUpdater update = MyUpdater(md5Checksum);
-    if(https.begin(*client,BASE_URL,443, httpRequestData, true)){
-      return update.startUpdate(https, currentVersion);
+    bool http_connected = startConnectionWith(httpRequestData, apy_key);
+    if(http_connected){
+      bool return_value = update.startUpdate(this->https, currentVersion);
+      https.end();
+      return return_value;
     }
   }
   return false;

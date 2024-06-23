@@ -1,5 +1,5 @@
 #include "MyUpdater.h"
-
+//#define DEBUG
 void update_started() {
   Serial.println("CALLBACK:  HTTP update process started");
 }

@@ -19,14 +19,16 @@ private:
 
   void initVersion(int EEPROMSize);
   void initNetwork(const char * base_url, const char * fingerPrint);
-  void serverFirmwareCheck();
-  void startDownload();
+  bool serverFirmwareCheck();
+  bool startDownload();
+  void init(int EEPROMSize, const char * base_url, const char * API_KEY);
   //void updateFirmware();
 
 public:
   SimpleOTA();
   void begin(int EEPROMSize,const char * base_url, const char * fingerPrint, const char * API_KEY);
-  void checkUpdates(unsigned long seconds);
+  void begin(int EEPROMSize,const char * base_url, const char * API_KEY);
+  bool checkUpdates(unsigned long seconds);
 };
 
 #endif

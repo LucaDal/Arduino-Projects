@@ -5,6 +5,7 @@
 
 #include "MyUpdater.h"
 #include <ESP8266httpUpdate.h>
+
 class MyUpdater{
     public:
         MyUpdater(String md5Checksum);

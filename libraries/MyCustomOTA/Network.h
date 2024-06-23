@@ -12,12 +12,14 @@
 
 class Network {
 private:
+  //called https but it could be http
   HTTPClient https;
   std::unique_ptr<BearSSL::WiFiClientSecure> client {new BearSSL::WiFiClientSecure};
   StaticJsonDocument<300> doc;
-  typedef void (*FuncPtrInt)(int);
+  //typedef void (*FuncPtrInt)(int);
   const char * BASE_URL;
   const char * fingerPrint;
+  bool startConnectionWith(String server_api_address, String apy_key);
 
 public:
   Network(const char *base_url, const char * fingerPrint);
